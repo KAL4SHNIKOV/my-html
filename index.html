@@ -4,13 +4,197 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>工具集合</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", "PingFang SC", "Microsoft Yahei", sans-serif;
+      background-color: #f5f6fb;
+      color: #1f2937;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #eef2ff 0%, #f8fafc 45%, #f5f6fb 100%);
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 2.8rem);
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 520px;
+      font-size: 1.05rem;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .hero-card {
+      display: grid;
+      gap: 12px;
+      padding: 20px 24px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    .hero-card strong {
+      font-size: 1rem;
+    }
+
+    .hero-card span {
+      font-size: 0.95rem;
+      color: #64748b;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .tool-card {
+      position: relative;
+      padding: 24px;
+      border-radius: 18px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    .tool-card a {
+      text-decoration: none;
+      color: inherit;
+      display: grid;
+      gap: 12px;
+    }
+
+    .tool-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      background: #eef2ff;
+    }
+
+    .tool-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .tool-desc {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    footer {
+      margin-top: 48px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 720px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero-card {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>工具集合</h1>
-  <ul>
-    <li><a href="./tender-agency-fee-calculator.html">招标代理服务费计算</a></li>
-    <li><a href="./gantt.html">甘特图</a></li>
-    <li><a href="./schulte-grid.html">舒尔特方格图</a></li>
-  </ul>
+  <div class="page">
+    <header>
+      <div class="title-block">
+        <h1>工具集合</h1>
+        <p class="subtitle">
+          常用的小工具入口，快速直达计算、规划与训练页面，让日常工作更高效。
+        </p>
+      </div>
+      <div class="hero-card">
+        <strong>今天要做什么？</strong>
+        <span>选择一个工具即可开始，更多功能持续更新中。</span>
+      </div>
+    </header>
+
+    <main>
+      <ul class="tool-grid">
+        <li class="tool-card">
+          <a href="./tender-agency-fee-calculator.html">
+            <div class="tool-icon">📊</div>
+            <div class="tool-name">招标代理服务费计算</div>
+            <p class="tool-desc">快捷计算服务费和区间报价，节省手工核算时间。</p>
+          </a>
+        </li>
+        <li class="tool-card">
+          <a href="./gantt.html">
+            <div class="tool-icon">🗂️</div>
+            <div class="tool-name">甘特图</div>
+            <p class="tool-desc">可视化项目排期与关键节点，保持计划节奏。</p>
+          </a>
+        </li>
+        <li class="tool-card">
+          <a href="./schulte-grid.html">
+            <div class="tool-icon">🧠</div>
+            <div class="tool-name">舒尔特方格图</div>
+            <p class="tool-desc">专注力训练工具，提升视觉搜索与反应速度。</p>
+          </a>
+        </li>
+      </ul>
+    </main>
+
+    <footer>© 2024 工具集合 · 简洁高效的日常助手</footer>
+  </div>
 </body>
 </html>
