@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gantt Pro - 日间报告版</title>
+  <style>
+    :root {
+      /* --- 日间模式 (Light Mode) 商务配色 --- */
+      --bg-body: #f1f5f9;      /* 浅灰背景 */
+      --bg-panel: #ffffff;     /* 纯白面板 */
+      --bg-input: #f8fafc;     /* 输入框极浅灰 */
+      --border: #e2e8f0;       /* 边框淡灰 */
+      
+      --primary: #3b82f6;      /* 商务蓝 */
+      --primary-hover: #2563eb;
+      
+      --text-main: #1e293b;    /* 深色正文 */
+      --text-muted: #64748b;   /* 辅助文字 */
+      
+      --danger: #ef4444;
+      --success: #10b981;
+      
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --radius: 6px;
+      
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; outline: none; }
+    
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* --- Header --- */
+    header {
+      height: 56px;
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      z-index: 10;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--primary);
+    }
+    .brand input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-main);
+      font-size: 16px;
+      font-weight: 600;
+      width: 280px;
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      transition: all 0.2s;
+    }
+    .brand input:hover, .brand input:focus {
+      background: var(--bg-input);
+      border-color: var(--border);
+    }
+
+    .actions { display: flex; gap: 8px; }
+
+    button {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    button:hover { background-color: #f8fafc; border-color: #cbd5e1; }
+    button:active { transform: translateY(1px); }
+    
+    button.primary { background-color: var(--primary); border-color: var(--primary); color: white; }
+    button.primary:hover { background-color: var(--primary-hover); }
+    
+    button.danger { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+    button.danger:hover { background: #fee2e2; }
+
+    /* --- Toolbar --- */
+    .toolbar {
+      height: 52px;
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 20px;
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    
+    .tool-group {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 12px; color: var(--text-muted);
+      border-right: 1px solid var(--border);
+      padding-right: 20px;
+    }
+    .tool-group:last-child { border-right: none; }
+    .tool-title { font-weight: 600; margin-right: 4px; color: var(--text-main); }
+
+    .tool-item { display: flex; align-items: center; gap: 6px; }
+    .tool-item label { cursor: pointer; user-select: none; }
+    
+    input[type="range"] { width: 80px; accent-color: var(--primary); }
+    input[type="checkbox"] { accent-color: var(--primary); width: 14px; height: 14px; }
+    
+    input[type="number"], input[type="date"] {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+    input[type="number"]:focus, input[type="date"]:focus { border-color: var(--primary); background: #fff; }
+
+    /* --- Workspace --- */
+    .workspace { display: flex; flex: 1; overflow: hidden; }
+
+    /* Left Panel */
+    .panel-left {
+      width: 440px;
+      background-color: #ffffff;
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0;
+      z-index: 5;
+    }
+    
+    .panel-header {
+      padding: 10px 16px;
+      font-size: 12px; font-weight: 600; color: var(--text-muted);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+    }
+
+    .task-list { flex: 1; overflow-y: auto; padding: 12px; background: #fff; }
+    
+    .task-row {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      transition: all 0.2s;
+    }
+    .task-row:hover { border-color: #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    .task-row:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+    
+    .row-top { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; }
+    .row-top input.name {
+      width: 100%; border: none; background: transparent;
+      color: var(--text-main); font-weight: 600; font-size: 14px; padding: 2px 0;
+    }
+    .row-top .row-idx {
+      font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);
+      background: #f1f5f9; padding: 1px 5px; border-radius: 4px;
+    }
+
+    .row-detail {
+      display: grid; grid-template-columns: 1fr 1fr 0.7fr 0.7fr auto; gap: 8px; align-items: center;
+    }
+    .field-group { display: flex; flex-direction: column; gap: 2px; }
+    .field-group label { font-size: 10px; color: var(--text-muted); }
+    .field-group input { width: 100%; }
+    
+    .btn-del-row {
+      background: transparent; border: none; color: #cbd5e1;
+      padding: 4px; cursor: pointer; margin-top: 14px;
+    }
+    .btn-del-row:hover { color: var(--danger); }
+
+    /* TSV Area */
+    .tsv-area {
+      height: 140px; border-top: 1px solid var(--border); background: #f8fafc;
+      display: flex; flex-direction: column;
+    }
+    .tsv-header { padding: 6px 12px; font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+    .tsv-area textarea {
+      flex: 1; border: none; background: transparent; padding: 10px;
+      color: var(--text-main); font-family: var(--font-mono); font-size: 11px; resize: none;
+    }
+
+    /* Right Panel (Chart) */
+    .panel-right {
+      flex: 1; display: flex; flex-direction: column;
+      position: relative; background: #ffffff; overflow: hidden;
+    }
+    
+    .chart-status {
+      position: absolute; bottom: 16px; right: 20px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 20px;
+      font-size: 11px; color: var(--text-muted);
+      pointer-events: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .scroller {
+      flex: 1; overflow: auto; cursor: grab; position: relative;
+      background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .scroller:active { cursor: grabbing; }
+
+    /* Export Frame */
+    .export-container { display: inline-block; padding: 20px; background: white; }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; border: 2px solid #f1f5f9; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+      <input id="docTitle" value="项目进度计划表" />
+    </div>
+    <div class="actions">
+      <button class="primary" id="btnAdd">＋ 新增</button>
+      <button id="btnSave">保存</button>
+      <button id="btnLoad">读取</button>
+      <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
+      <button id="btnPNG" title="推荐Word使用">📷 导出PNG</button>
+      <button class="danger" id="btnReset" title="重置">↺</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-title">视图缩放</span>
+      <div class="tool-item">
+        <label>列宽</label>
+        <input id="zoom" type="range" min="15" max="80" value="34" title="调整每天的宽度" />
+      </div>
+      <div class="tool-item">
+        <label>行高</label>
+        <input id="rowH" type="range" min="28" max="60" value="38" />
+      </div>
+    </div>
+    
+    <div class="tool-group">
+      <span class="tool-title">空间压缩</span>
+      <div class="tool-item" title="勾选后不显示周六日，显著缩短图表长度">
+        <input id="hideWeekends" type="checkbox" />
+        <label for="hideWeekends">隐藏周末</label>
+      </div>
+       <div class="tool-item" title="显示周序号">
+        <input id="showWeeks" type="checkbox" checked />
+        <label for="showWeeks">显示周列</label>
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <span class="tool-title">显示范围 (裁剪)</span>
+      <div class="tool-item">
+        <label>开始</label>
+        <input id="viewStart" type="date" title="留空则自动计算" />
+      </div>
+      <div class="tool-item">
+        <label>结束</label>
+        <input id="viewEnd" type="date" title="留空则自动计算" />
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <aside class="panel-left">
+      <div class="panel-header">
+        <span>任务清单</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="danger" id="btnClearTasks" style="padding:2px 8px;font-size:11px;background:#fff">清空</button>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:500;">总工期：<span id="totalDuration">—</span><span id="totalRange" style="margin-left:6px;"></span></span>
+          <span style="font-weight:400;opacity:0.8">可直接拖拽右侧图表</span>
+        </div>
+      </div>
+<div class="task-list" id="rows"></div>
+      <div class="tsv-area">
+        <div class="tsv-header">
+          <span>Excel/TSV 导入 (项目 | 开始日期 | 工期)</span>
+          <button id="btnImport" style="padding:2px 8px;font-size:11px;background:#fff">导入</button>
+        </div>
+        <textarea id="tsvIn" placeholder="按 TSV 粘贴：项目\t开始日期\t工期（天）..."></textarea>
+      </div>
+    </aside>
+
+    <main class="panel-right">
+      <div class="scroller" id="scroller">
+        <div class="export-container" id="exportFrame">
+          <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+      <div class="chart-status" id="statusPill">就绪</div>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const MS = 24*60*60*1000;
+  
+  // --- 样式配置（日间模式） ---
+  const config = {
+    colors: {
+      grid: "#f1f5f9",         // 极淡的网格线
+      gridWeek: "#e2e8f0",     // 周分隔线
+      gridWeekend: "#f8fafc",  // 周末背景色
+      text: "#64748b",         // 轴文字
+      textMain: "#0f172a",     // 标题文字
+      barStart: "#3b82f6",     // 蓝色渐变起
+      barEnd: "#60a5fa",       // 蓝色渐变止
+      barBorder: "#2563eb",    // 边框色
+      headerBg: "#ffffff",     // 头部背景
+      headerLine: "#cbd5e1",   // 头部下划线
+      today: "#ef4444"         // 今天红线
+    },
+    padDays: 3,
+    leftW: 10,
+    headH: 36,
+    subHeadH: 24,
+    barPercent: 0.65
+  };
+
+  const state = {
+    tasks: [],
+    zoom: 34,
+    rowH: 38,
+    gridStep: 1,
+    hideWeekends: false
+  };
+
+  /* --- 基础日期工具 --- */
+  function todayISO(){
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  }
+  function parseISO(s){
+    if(!s) return null;
+    s = String(s).trim();
+
+    // Excel 可能复制出数字序列日期（序列号）
+    if(/^\d{5,}$/.test(s)){
+      const n = parseInt(s,10);
+      // Excel 序列号通常以 1899-12-30 为基准（兼容 1900 闰年 bug）
+      const base = new Date(Date.UTC(1899,11,30));
+      const d = new Date(base.getTime() + n * 86400000);
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+
+    // 去除时间部分（如 "2026-01-05 00:00:00"）
+    if(s.includes(" ")) s = s.split(" ")[0];
+
+    // 统一分隔符
+    s = s.replace(/[\/\.]/g, "-");
+
+    // 原生 ISO（含 T）直接交给 Date 解析
+    if(s.includes("T")) return new Date(s);
+
+    return new Date(s + "T00:00:00");
+  }
+  function fmtISO(d){ return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function addDays(d,n){ return new Date(d.getTime()+n*MS); }
+  function daysBetween(a,b){ return Math.round((b-a)/MS); }
+  function isWeekend(d){ const day = d.getDay(); return day===0 || day===6; }
+  function uid(){ return Math.random().toString(36).slice(2); }
+
+  /* --- 核心业务逻辑 --- */
+  function defaultTasks(){
+    const base = parseISO(todayISO());
+    return [
+      { id: uid(), name: "项目启动会", start: fmtISO(base), end: fmtISO(addDays(base, 2)), gap: 0 },
+      { id: uid(), name: "需求调研与分析", start: fmtISO(addDays(base, 3)), end: fmtISO(addDays(base, 10)), gap: 0 },
+      { id: uid(), name: "系统架构设计", start: fmtISO(addDays(base, 10)), end: fmtISO(addDays(base, 18)), gap: 10 },
+      { id: uid(), name: "模块开发阶段", start: fmtISO(addDays(base, 15)), end: fmtISO(addDays(base, 35)), gap: 0 },
+      { id: uid(), name: "集成测试", start: fmtISO(addDays(base, 36)), end: fmtISO(addDays(base, 42)), gap: 0 }
+    ];
+  }
+
+  // 计算日期的 X 坐标（核心：处理隐藏周末逻辑）
+  function getX(date, minDate) {
+    const totalDays = daysBetween(minDate, date);
+    if (!state.hideWeekends) {
+      return config.leftW + totalDays * state.zoom;
+    }
+    
+    // 隐藏周末模式：计算 minDate 到 date 之间的工作日天数
+    let workDays = 0;
+    let curr = new Date(minDate);
+    // 简单循环计算（为了准确性，不使用公式）
+    while (curr < date) {
+      if (!isWeekend(curr)) workDays++;
+      curr = addDays(curr, 1);
+    }
+    // 如果目标日期本身是周末，它应该叠在前一个周五的位置（视觉上）
+    // 或者我们简单地不增加 X
+    return config.leftW + workDays * state.zoom;
+  }
+
+  // 修正任务数据
+  function normalizeTask(t) {
+    if (!t.start || !t.end) {
+      const base = parseISO(todayISO());
+      t.start = fmtISO(base); t.end = fmtISO(addDays(base, 5));
+    }
+    const s = parseISO(t.start), e = parseISO(t.end);
+    if (s > e) t.end = t.start;
+    t.gap = Number(t.gap)||0;
+    t._dur = Math.max(1, daysBetween(s, e));
+    return t;
+  }
+
+  // 计算并显示总工期（按最早开始 ~ 最晚结束的自然日跨度；与当前任务条宽度计算保持一致）
+  function updateTotalDuration(minTaskStart, maxTaskEnd) {
+    const durEl = $("totalDuration");
+    const rangeEl = $("totalRange");
+    if (!durEl) return;
+
+    if (!minTaskStart || !maxTaskEnd || isNaN(minTaskStart.getTime()) || isNaN(maxTaskEnd.getTime())) {
+      durEl.textContent = "—";
+      if (rangeEl) rangeEl.textContent = "";
+      return;
+    }
+
+    const spanDays = Math.max(0, daysBetween(minTaskStart, maxTaskEnd));
+    durEl.textContent = `${spanDays} 天`;
+    if (rangeEl) rangeEl.textContent = `(${fmtISO(minTaskStart)} ~ ${fmtISO(maxTaskEnd)})`;
+  }
+
+
+  /* --- 渲染列表 DOM --- */
+  function renderRows() {
+    const box = $("rows");
+    box.innerHTML = "";
+    state.tasks.forEach((t, idx) => {
+      normalizeTask(t);
+      const row = document.createElement("div");
+      row.className = "task-row";
+      row.innerHTML = `
+        <div class="row-top">
+          <span class="row-idx">${idx+1}</span>
+          <input class="name" value="${t.name}" placeholder="任务名称" />
+        </div>
+        <div class="row-detail">
+          <div class="field-group"><label>开始</label><input type="date" class="i-s" value="${t.start}"></div>
+          <div class="field-group"><label>结束</label><input type="date" class="i-e" value="${t.end}"></div>
+          <div class="field-group"><label>工期</label><input type="number" class="i-d" min="1" value="${t._dur}"></div>
+          <div class="field-group"><label>行距</label><input type="number" class="i-g" min="0" value="${t.gap}"></div>
+          <button class="btn-del-row" title="删除">✕</button>
+        </div>
+      `;
+      
+      const update = () => {
+        t.name = row.querySelector(".name").value;
+        t.start = row.querySelector(".i-s").value;
+        t.end = row.querySelector(".i-e").value;
+        t.gap = Number(row.querySelector(".i-g").value);
+        renderChart();
+      };
+
+      row.querySelector(".name").oninput = update;
+      row.querySelector(".i-s").onchange = update;
+      row.querySelector(".i-e").onchange = update;
+      row.querySelector(".i-g").onchange = update;
+      row.querySelector(".i-d").onchange = (e) => {
+        const d = Math.max(1, Number(e.target.value));
+        t.end = fmtISO(addDays(parseISO(t.start), d));
+        row.querySelector(".i-e").value = t.end;
+        update();
+      };
+      row.querySelector(".btn-del-row").onclick = () => {
+        if(confirm("确认删除？")) { state.tasks.splice(idx,1); renderAll(); }
+      };
+      
+      box.appendChild(row);
+    });
+  }
+
+  /* --- 渲染 SVG --- */
+  function el(tag, attrs={}) {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  function svgTxt(str, x, y, size, color, weight="normal") {
+    const t = el("text", {x, y, fill:color, "font-size":size, "font-weight":weight, "font-family":"var(--font-sans)"});
+    t.textContent = str;
+    return t;
+  }
+
+  function renderChart() {
+    // 1. 读取配置
+    state.zoom = Number($("zoom").value);
+    state.rowH = Number($("rowH").value);
+    state.hideWeekends = $("hideWeekends").checked;
+    const showWeeks = $("showWeeks").checked;
+    
+    // 2. 确定时间范围（任务真实范围）
+    let minT = null, maxT = null;
+    state.tasks.forEach(t => {
+      const s = parseISO(t.start), e = parseISO(t.end);
+      if(!minT || s < minT) minT = s;
+      if(!maxT || e > maxT) maxT = e;
+    });
+
+    // 任务为空时给一个默认范围
+    const minTask = minT ? new Date(minT) : parseISO(todayISO());
+    const maxTask = maxT ? new Date(maxT) : addDays(minTask, 10);
+
+    // 显示总工期（不受显示裁剪影响）
+    updateTotalDuration(minTask, maxTask);
+
+    // 图表渲染范围：先按任务范围，再应用裁剪
+    minT = minTask;
+    maxT = maxTask;
+
+    // 应用手动裁剪范围
+    const userStart = parseISO($("viewStart").value);
+    const userEnd = parseISO($("viewEnd").value);
+    if(userStart) minT = userStart;
+    if(userEnd && userEnd > minT) maxT = userEnd;
+
+    // 增加一点 padding
+    const renderMin = addDays(minT, -config.padDays);
+    const renderMax = addDays(maxT, config.padDays);
+    const totalDays = daysBetween(renderMin, renderMax);
+
+    // 3. 计算高度和宽度
+    let currentY = config.headH + config.subHeadH;
+    const taskYs = state.tasks.map(t => {
+      const y = currentY;
+      currentY += state.rowH + (t.gap||0);
+      return y;
+    });
+    
+    // 计算总宽: 通过模拟最后一个点的坐标
+    const chartW = getX(renderMax, renderMin) + 200; 
+    const chartH = Math.max(currentY + 20, 300);
+
+    const svg = $("svg");
+    svg.innerHTML = "";
+    svg.setAttribute("width", chartW);
+    svg.setAttribute("height", chartH);
+    svg.setAttribute("viewBox", `0 0 ${chartW} ${chartH}`);
+
+    // 背景
+    svg.appendChild(el("rect", {x:0,y:0,width:chartW,height:chartH,fill:"#ffffff"}));
+
+    // 定义样式
+    const defs = el("defs");
+    // 蓝色渐变条
+    const lg = el("linearGradient", {id:"barGrad", x1:"0", y1:"0", x2:"0", y2:"1"});
+    lg.appendChild(el("stop", {offset:"0%", "stop-color":config.colors.barStart}));
+    lg.appendChild(el("stop", {offset:"100%", "stop-color":config.colors.barEnd}));
+    defs.appendChild(lg);
+    // 阴影
+    const flt = el("filter", {id:"shadow", x:"-20%", y:"-20%", width:"140%", height:"140%"});
+    flt.innerHTML = `<feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>`;
+    defs.appendChild(flt);
+    svg.appendChild(defs);
+
+    // 4. 绘制网格与时间轴
+    const axisY = config.headH + config.subHeadH;
+    
+    // 绘制所有天（根据 hideWeekends 跳过）
+    let lastMonth = -1;
+    
+    for (let d=0; d<=totalDays; d++) {
+      const curr = addDays(renderMin, d);
+      // 如果隐藏周末且当前是周末，则跳过绘制
+      if (state.hideWeekends && isWeekend(curr)) continue;
+      
+      const x = getX(curr, renderMin);
+      const dayNum = curr.getDate();
+      const isMon = curr.getDay()===1;
+      const isWe = isWeekend(curr);
+
+      // 竖线
+      const lineStroke = (isMon && showWeeks) ? config.colors.gridWeek : config.colors.grid;
+      svg.appendChild(el("line", {x1:x,y1:axisY,x2:x,y2:chartH, stroke:lineStroke, "stroke-width":1}));
+      
+      // 周末背景条 (如果不隐藏)
+      if (!state.hideWeekends && isWe) {
+        svg.appendChild(el("rect", {x:x, y:axisY, width:state.zoom, height:chartH-axisY, fill:config.colors.gridWeekend}));
+      }
+
+      // 日期文字
+      // 只有空间足够或某些特定日期才显示
+      if (state.zoom > 24 || dayNum === 1 || dayNum % 2 === 0) {
+        svg.appendChild(svgTxt(dayNum, x+4, axisY-6, 11, config.colors.text));
+      }
+      
+      // 周文字
+      if (showWeeks && isMon) {
+        svg.appendChild(svgTxt("周一", x+4, axisY-18, 10, config.colors.textMain, "bold"));
+      }
+
+      // 月份处理 (简化版：只在每月1号或第一天绘制)
+      if (curr.getMonth() !== lastMonth) {
+        svg.appendChild(el("line", {x1:x, y1:0, x2:x, y2:config.headH, stroke:config.colors.headerLine}));
+        svg.appendChild(svgTxt(`${curr.getFullYear()}-${curr.getMonth()+1}月`, x+6, 24, 14, config.colors.textMain, "bold"));
+        lastMonth = curr.getMonth();
+      }
+    }
+    
+    // 表头横线
+    svg.appendChild(el("line", {x1:0,y1:config.headH,x2:chartW,y2:config.headH,stroke:config.colors.headerLine}));
+    svg.appendChild(el("line", {x1:0,y1:axisY,x2:chartW,y2:axisY,stroke:config.colors.headerLine}));
+    
+    // 5. 绘制任务条
+    state.tasks.forEach((t, i) => {
+      const s = parseISO(t.start);
+      const e = parseISO(t.end);
+      
+      // 范围外不绘制
+      if (e < renderMin || s > renderMax) return;
+
+      const y = taskYs[i];
+      const h = state.rowH * config.barPercent;
+      const yBar = y + (state.rowH - h)/2;
+      
+      // 行辅助线
+      svg.appendChild(el("line", {x1:0, y1:y+state.rowH, x2:chartW, y2:y+state.rowH, stroke:config.colors.grid}));
+
+      // 计算条的起止 X
+      // 注意：如果 s 是周末且隐藏了，getX 会让它靠齐周五还是周一？
+      // 我们的 getX 逻辑是计算 min 到 s 的工作日数。
+      let x1 = getX(s, renderMin);
+      // 计算宽度的逻辑：不能简单用 daysBetween * zoom，因为中间可能跨越了被隐藏的周末
+      // 应该是 getX(e) - getX(s) + zoom (包含最后一天)
+      // 但由于 e 可能是周末，需要微调
+      let x2 = getX(addDays(e, 1), renderMin); 
+      
+      let w = Math.max(4, x2 - x1);
+      // 视觉微调：条之间留一点缝隙
+      w -= 2; 
+
+      const g = el("g", {style:"cursor:pointer"});
+      const rect = el("rect", {
+        x:x1, y:yBar, width:w, height:h, rx:4, 
+        fill:"url(#barGrad)", stroke:config.colors.barBorder, "stroke-width":1,
+        filter:"url(#shadow)"
+      });
+      g.appendChild(rect);
+
+      // 文本
+      const labelX = w > 60 ? x1+6 : x1+w+6;
+      const labelColor = w > 60 ? "#fff" : config.colors.textMain;
+      g.appendChild(svgTxt(t.name, labelX, yBar+h/2+4, 12, labelColor, "500"));
+
+      svg.appendChild(g);
+      
+      // 简单的拖拽绑定 (逻辑简化：只更新数据，触发重绘)
+      bindDrag(rect, t);
+    });
+
+    $("statusPill").textContent = `显示范围: ${fmtISO(renderMin)} ~ ${fmtISO(renderMax)}`;
+  }
+
+  function bindDrag(rect, t) {
+    rect.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const s0 = parseISO(t.start);
+      const e0 = parseISO(t.end);
+      
+      const onMove = (ev) => {
+        const diffPx = ev.clientX - startX;
+        const diffDays = Math.round(diffPx / state.zoom);
+        if(diffDays === 0) return;
+        // 拖拽时不考虑工作日逻辑，简单平移日期
+        t.start = fmtISO(addDays(s0, diffDays));
+        t.end = fmtISO(addDays(e0, diffDays));
+        renderChart(); // 实时重绘
+        renderRows(); // 同步左侧
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    });
+  }
+
+  /* --- 导出 --- */
+  function exportPNG() {
+    const svg = $("svg");
+    const xml = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    // 2x 高清导出
+    const scale = 2;
+    canvas.width = svg.getAttribute("width") * scale;
+    canvas.height = svg.getAttribute("height") * scale;
+    
+    img.onload = () => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      
+      canvas.toBlob(blob => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `Gantt_Export_${fmtISO(new Date())}.png`;
+        a.click();
+      });
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+  }
+
+  function renderAll() { renderRows(); renderChart(); }
+  
+  // Events
+  $("btnAdd").onclick = () => {
+    state.tasks.push({id:uid(), name:"新任务", start:fmtISO(parseISO(todayISO())), end:fmtISO(addDays(parseISO(todayISO()),5))});
+    renderAll();
+  };
+  $("btnReset").onclick = () => { state.tasks = defaultTasks(); renderAll(); };
+  $("btnClearTasks").onclick = () => {
+    if(confirm("确认清空任务清单？")) { state.tasks = []; renderAll(); }
+  };
+  $("btnPNG").onclick = exportPNG;
+  
+  // --- TSV 导入逻辑（项目 | 开始日期 | 工期） ---
+  $("btnImport").onclick = () => {
+    const txt = $("tsvIn").value.trim();
+    if(!txt) return alert("请先粘贴 Excel 内容");
+
+    // 兼容 Windows / macOS / Linux 换行
+    const lines = txt.split(/\r?\n/);
+    let count = 0;
+
+    lines.forEach(line => {
+      // 1. 清理数据：去除首尾空白，处理 Excel 可能带的引号
+      line = line.trim().replace(/^"|"$/g, '');
+      if(!line) return;
+
+      // 2. 分割列：支持 Tab(Excel默认) 或 英文逗号
+      const cols = line.split(/[\t,]/).map(s => s.trim());
+
+      // 跳过显而易见的表头
+      if (cols[0] && cols[0].match(/^(项目|任务|Task|名称|Name)/i)) return;
+
+      // 至少需要：项目 + 开始日期
+      if (cols.length < 2) return;
+
+      const name = cols[0] || "未命名";
+      const startStr = cols[1] || "";
+      const third = (cols[2] ?? "").trim(); // 工期 或 结束日期（兼容）
+
+      // 开始日期必须为日期格式
+      if (!(/[-\/\.]/.test(startStr) || /^\d{5,}$/.test(startStr))) return;
+      const s = parseISO(startStr);
+      if (!s || isNaN(s.getTime())) return;
+
+      let e = null;
+
+      // 第三列优先按工期解析；如明显为日期则按结束日期兼容处理
+      if (third && /[-\/\.]/.test(third)) {
+        const tmp = parseISO(third);
+        if (tmp && !isNaN(tmp.getTime())) e = tmp;
+      } else {
+        const dur = Math.max(1, parseInt(third) || 1);
+        e = addDays(s, dur - 1);
+      }
+
+      if (!e || isNaN(e.getTime())) return;
+
+      state.tasks.push({
+        id: uid(),
+        name,
+        start: fmtISO(s),
+        end: fmtISO(e),
+        gap: 0
+      });
+      count++;
+    });
+
+    if(count > 0) {
+      renderAll();
+      alert(`成功导入 ${count} 条任务`);
+      $("tsvIn").value = "";
+    } else {
+      alert("未识别到有效数据，请检查格式：项目<Tab>开始日期<Tab>工期(天)");
+    }
+  };
+
+
+  // 绑定所有 Input 事件
+  ["zoom","rowH","hideWeekends","showWeeks","viewStart","viewEnd"].forEach(k => {
+    $(k).oninput = renderChart;
+  });
+
+  // Init
+  state.tasks = defaultTasks();
+  renderAll();
+})();
+</script>
+</body>
+</html>

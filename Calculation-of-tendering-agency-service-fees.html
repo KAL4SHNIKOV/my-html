@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>招标/采购代理服务费测算</title>
+  <style>
+    :root {
+      /* 明亮模式 */
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --border: #e5e7eb;
+      --input-bg: #f9fafb;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-text: #ffffff;
+      --accent: #eff6ff;
+      --success: #10b981;
+      --danger: #ef4444;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --radius: 12px;
+    }
+
+    [data-theme="dark"] {
+      /* 暗黑模式 */
+      --bg: #0b0c0f;
+      --card-bg: #12141a;
+      --text-main: #e8eaf0;
+      --text-sub: #a7adbd;
+      --border: #2a2f3a;
+      --input-bg: #0f1117;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --primary-text: #ffffff;
+      --accent: #1e293b;
+      --success: #34d399;
+      --danger: #fb7185;
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; transition: background-color 0.2s, border-color 0.2s, color 0.1s; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    
+    header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text-main); }
+    .subtitle { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+
+    .btn-icon {
+      background: var(--card-bg); border: 1px solid var(--border);
+      color: var(--text-main); border-radius: 8px; cursor: pointer;
+      padding: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-icon:hover { background: var(--accent); }
+    
+    .grid {
+      display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;
+    }
+    @media (max-width: 767px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 16px; font-weight: 600; margin: 0 0 16px 0;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; }
+    
+    input, select, textarea {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text-main); border-radius: 8px; padding: 10px 12px;
+      font-size: 14px; outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    
+    .input-group { display: flex; gap: 8px; }
+    .suffix {
+      background: var(--accent); border: 1px solid var(--border); color: var(--text-sub);
+      padding: 0 12px; display: flex; align-items: center; border-radius: 8px; font-size: 13px; white-space: nowrap;
+    }
+
+    .hint { font-size: 12px; color: var(--text-sub); margin-top: 6px; line-height: 1.4; }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+    button.action {
+      padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-primary { background: var(--primary); color: var(--primary-text); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+    .btn-secondary:hover { background: var(--accent); }
+
+    /* 快捷选项 Chips 样式 */
+    .chip-group {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+    }
+    .chip {
+      font-size: 12px; padding: 6px 12px; border-radius: 20px; cursor: pointer;
+      background: var(--input-bg); border: 1px solid var(--border); color: var(--text-sub);
+      transition: all 0.2s; user-select: none;
+    }
+    .chip:hover { border-color: var(--primary); color: var(--primary); }
+    .chip.active {
+      background: var(--primary); color: #fff; border-color: var(--primary);
+    }
+
+    details { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    details summary {
+      padding: 10px 12px; background: var(--accent); cursor: pointer;
+      font-size: 13px; font-weight: 500; user-select: none;
+    }
+    details .content { padding: 16px; }
+    textarea.code { font-family: monospace; font-size: 12px; min-height: 120px; line-height: 1.4; }
+
+    /* 结果展示区 */
+    .result-summary {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--accent); padding: 16px; border-radius: 10px; text-align: center;
+      position: relative;
+    }
+    .kpi-card.main {
+      grid-column: span 2; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    [data-theme="dark"] .kpi-card.main { background: rgba(59, 130, 246, 0.15); }
+
+    .kpi-label { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
+    .kpi-value-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .kpi-value { font-size: 20px; font-weight: 700; color: var(--text-main); font-family: monospace; }
+    .kpi-value.highlight { font-size: 28px; color: var(--primary); }
+    
+    .btn-copy {
+      background: transparent; border: none; cursor: pointer; padding: 4px;
+      color: var(--text-sub); opacity: 0.6; border-radius: 4px; display: flex;
+    }
+    .btn-copy:hover { opacity: 1; background: rgba(0,0,0,0.05); color: var(--primary); }
+    [data-theme="dark"] .btn-copy:hover { background: rgba(255,255,255,0.1); }
+    .btn-copy.success { color: var(--success); opacity: 1; }
+
+    .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;}
+    th { background: var(--accent); font-weight: 600; color: var(--text-sub); }
+    td { color: var(--text-main); font-family: monospace; }
+    tr:last-child td { border-bottom: none; }
+
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .tag {
+      font-size: 12px; padding: 4px 10px; border-radius: 20px;
+      background: var(--accent); color: var(--text-sub); border: 1px solid var(--border);
+    }
+    .tag strong { color: var(--text-main); }
+
+    .print-only { display: none; }
+    @media print {
+      body { background: #fff; color: #000; }
+      .wrap { max-width: 100%; padding: 0; }
+      .card { box-shadow: none; border: none; padding: 0; }
+      header button, .btn-row, details summary, .hint, .btn-copy, .chip-group { display: none !important; }
+      .grid { display: block; }
+      .card:first-child { display: none; } 
+      .print-only { display: block; margin-bottom: 20px; }
+      details { border: none; }
+      details[open] .content { padding: 0; }
+      textarea { border: none; resize: none; height: auto; }
+      .kpi-card { border: 1px solid #ddd; background: #fff !important; }
+    }
+  
+    /* 设备尺寸优化：iPhone / iPad / macOS */
+    @media (min-width: 1025px) {
+      .grid { grid-template-columns: 420px 1fr; }
+      .card:first-child { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+    }
+
+    @media (max-width: 767px) {
+      .wrap { padding: 14px 12px calc(14px + env(safe-area-inset-bottom)); }
+      header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .grid { gap: 14px; }
+      .card { padding: 16px; }
+      input, select, textarea { font-size: 16px; } /* iOS 防止输入放大 */
+      .btn-row { grid-template-columns: 1fr 1fr; position: sticky; bottom: 12px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+      .result-summary { grid-template-columns: 1fr; }
+      .kpi-card.main { grid-column: span 1; }
+      th, td { padding: 10px 10px; }
+    }
+
+    @media (max-width: 380px) {
+      .btn-row { grid-template-columns: 1fr; }
+      .input-group { flex-direction: column; }
+      #amountUnit { width: 100% !important; }
+    }
+
+  
+    /* Segmented button controls (replace select dropdowns) */
+    .hidden-control{
+      position: absolute !important;
+      left: -10000px !important;
+      top: auto !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    .segmented{
+      display: flex;
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .segmented.segmented-small{ width: auto; flex-shrink: 0; }
+    .segmented .seg-btn{
+      appearance: none;
+      border: none;
+      background: transparent;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text-sub);
+      cursor: pointer;
+      line-height: 1.1;
+      flex: 1 1 0;
+      white-space: nowrap;
+    }
+    .segmented.segmented-small .seg-btn{ flex: 0 0 auto; }
+    .segmented .seg-btn + .seg-btn{ border-left: 1px solid var(--border); }
+    .segmented .seg-btn.active{
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+    }
+    .segmented .seg-btn:focus{
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      position: relative;
+      z-index: 1;
+    }
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>招标/采购代理服务费测算</h1>
+        <div class="subtitle">支持国计价[2002]1980号及自定义费率测算</div>
+      </div>
+      <div style="display:flex; gap:10px">
+        <button class="btn-icon" id="btnTheme" title="切换日夜模式">
+          <svg id="iconSun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg id="iconMoon" style="display:none" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button class="btn-icon" id="btnPrint" title="打印结果">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-title">参数配置</div>
+        
+        <div class="form-group">
+          <label>项目类型</label>
+          <div class="segmented" data-for="projectType" role="group" aria-label="项目类型">
+            <button type="button" class="seg-btn" data-value="engineering" aria-pressed="false">工程招标</button>
+            <button type="button" class="seg-btn" data-value="goods" aria-pressed="false">货物采购</button>
+            <button type="button" class="seg-btn" data-value="services" aria-pressed="false">服务采购</button>
+          </div>
+          <select id="projectType" class="hidden-control" tabindex="-1" aria-hidden="true">
+            <option value="engineering">工程招标</option>
+            <option value="goods">货物采购</option>
+            <option value="services">服务采购</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>计费基数金额 (通常为中标金额)</label>
+          <div class="input-group">
+            <input id="amount" type="number" min="0" step="0.01" placeholder="例如：100" />
+            <div class="segmented segmented-small" data-for="amountUnit" role="group" aria-label="金额单位">
+              <button type="button" class="seg-btn" data-value="WAN" aria-pressed="false">万元</button>
+              <button type="button" class="seg-btn" data-value="CNY" aria-pressed="false">元</button>
+            </div>
+            <select id="amountUnit" class="hidden-control" tabindex="-1" aria-hidden="true">
+              <option value="WAN">万元</option>
+              <option value="CNY">元</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>计费模式</label>
+          <div class="segmented" data-for="pricingModel" role="group" aria-label="计费模式">
+            <button type="button" class="seg-btn" data-value="tiered" aria-pressed="false">差额定率累进</button>
+            <button type="button" class="seg-btn" data-value="percentage" aria-pressed="false">固定费率</button>
+            <button type="button" class="seg-btn" data-value="fixed" aria-pressed="false">固定总价</button>
+          </div>
+          <select id="pricingModel" class="hidden-control" tabindex="-1" aria-hidden="true">
+            <option value="tiered">差额定率累进 (标准)</option>
+            <option value="percentage">固定费率 (按比例)</option>
+            <option value="fixed">固定总价 (包干)</option>
+          </select>
+        </div>
+
+        <div id="percentageWrap" class="form-group" style="display:none">
+          <label>费率百分比</label>
+          <div class="input-group">
+            <input id="rate" type="number" step="0.0001" placeholder="0.8" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+
+        <div id="fixedWrap" class="form-group" style="display:none">
+          <label>固定总价 (不含税)</label>
+          <div class="input-group">
+            <input id="fixedFee" type="number" step="0.01" />
+            <span class="suffix">元</span>
+          </div>
+        </div>
+
+        
+        <div class="form-group">
+          <label>增值税税率（可快速选择）</label>
+          <div class="input-group">
+            <input id="vatRate" type="number" value="6" />
+            <span class="suffix">%</span>
+          </div>
+          <div class="chip-group" id="vatChips">
+            <div class="chip active" data-val="6">6%（服务）</div>
+            <div class="chip" data-val="13">13%（一般税率）</div>
+            <div class="chip" data-val="3">3%（小规模）</div>
+            <div class="chip" data-val="1">1%（优惠）</div>
+            <div class="chip" data-val="0">0%（免税）</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>费用承担方</label>
+          <input type="hidden" id="payer" value="supplier">
+          <div class="chip-group" id="payerChips" style="margin-top:0; margin-bottom:8px;">
+            <div class="chip active" data-val="supplier">中标人支付</div>
+            <div class="chip" data-val="buyer">采购人支付</div>
+            <div class="chip" data-val="custom">自定义</div>
+          </div>
+          <input id="payerCustom" type="text" placeholder="输入承担方名称" style="display:none" />
+        </div>
+
+
+        <details>
+          <summary>高级设置（含税口径 / 封顶保底 / 分段费率）</summary>
+          <div class="content">
+</div>
+            
+            <div class="form-group">
+              <label>含税口径</label>
+              <select id="taxMode">
+                <option value="add">结果 = 不含税 + 税金</option>
+                <option value="incl">输入金额已含税 (反算)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+              <div>
+                <label>封顶 (不含税)</label>
+                <input id="cap" type="number" placeholder="无" />
+              </div>
+              <div>
+                <label>保底 (不含税)</label>
+                <input id="floor" type="number" placeholder="无" />
+              </div>
+            </div>
+
+            <div id="tierConfigWrap" class="form-group">
+              <label>分段费率配置 (JSON)</label>
+              <textarea id="tierConfig" class="code"></textarea>
+            </div>
+          </div>
+        </details>
+
+        <div class="btn-row">
+          <button class="action btn-secondary" id="btnReset">重置</button>
+          <button class="action btn-primary" id="btnCalc">开始计算</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="print-only">
+          <h2>代理服务费测算单</h2>
+        </div>
+
+        <div class="card-title">测算结果</div>
+
+        <div class="tags">
+          <div class="tag">类型: <strong id="oType">-</strong></div>
+          <div class="tag">模式: <strong id="oModel">-</strong></div>
+          <div class="tag">承担: <strong id="oPayer">-</strong></div>
+        </div>
+
+        <div class="result-summary">
+          <div class="kpi-card main">
+            <div class="kpi-label">含税总价 (元)</div>
+            <div class="kpi-value-wrap">
+              <div class="kpi-value highlight" id="oGross">0.00</div>
+              <button class="btn-copy" onclick="copyNum('oGross', this)" title="复制金额">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">不含税金额 (元)</div>
+            <div class="kpi-value-wrap">
+              <div class="kpi-value" id="oNet">0.00</div>
+              <button class="btn-copy" onclick="copyNum('oNet', this)" title="复制金额">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">增值税额 (元)</div>
+            <div class="kpi-value-wrap">
+              <div class="kpi-value" id="oVat">0.00</div>
+              <button class="btn-copy" onclick="copyNum('oVat', this)" title="复制金额">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table aria-label="分段明细">
+            <thead>
+              <tr>
+                <th width="30%">分段 (万元)</th>
+                <th width="20%">金额</th>
+                <th width="20%">费率(%)</th>
+                <th width="30%">费用(元)</th>
+              </tr>
+            </thead>
+            <tbody id="breakdown">
+              <tr><td colspan="4" style="text-align:center; color:var(--text-sub)">点击左侧“开始计算”生成结果</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hint" id="notes" style="margin-top:16px;">
+          说明：结果仅供参考，具体以合同及招标文件约定为准。
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // 复制功能逻辑
+    function copyNum(elementId, btn) {
+      const text = document.getElementById(elementId).innerText;
+      const cleanNum = text.replace(/,/g, '');
+      const tempInput = document.createElement("input");
+      tempInput.value = cleanNum;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      
+      try {
+        document.execCommand("copy");
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        btn.classList.add('success');
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.classList.remove('success');
+        }, 1500);
+      } catch (e) {
+        alert("复制失败，请手动复制");
+      }
+      document.body.removeChild(tempInput);
+    }
+
+    (function(){
+      const $ = (id) => document.getElementById(id);
+      const $$ = (sel) => document.querySelectorAll(sel);
+
+      // 主题切换逻辑
+      const btnTheme = $('btnTheme');
+      const iconSun = $('iconSun');
+      const iconMoon = $('iconMoon');
+      
+      function setTheme(isDark) {
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        iconSun.style.display = isDark ? 'none' : 'block';
+        iconMoon.style.display = isDark ? 'block' : 'none';
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      }
+
+      const savedTheme = localStorage.getItem('theme');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(savedTheme === 'dark' || (!savedTheme && systemDark));
+
+      btnTheme.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        setTheme(current !== 'dark');
+      });
+
+      // 业务逻辑变量
+      const els = {
+        projectType: $('projectType'),
+        pricingModel: $('pricingModel'),
+        amount: $('amount'),
+        amountUnit: $('amountUnit'),
+        rate: $('rate'),
+        fixedFee: $('fixedFee'),
+        vatRate: $('vatRate'),
+        taxMode: $('taxMode'),
+        payer: $('payer'), // 这是一个 hidden input
+        payerCustom: $('payerCustom'),
+        cap: $('cap'),
+        floor: $('floor'),
+        tierConfig: $('tierConfig'),
+        percentageWrap: $('percentageWrap'),
+        fixedWrap: $('fixedWrap'),
+        tierConfigWrap: $('tierConfigWrap'),
+        oType: $('oType'), oModel: $('oModel'), oPayer: $('oPayer'),
+        oNet: $('oNet'), oGross: $('oGross'), oVat: $('oVat'),
+        breakdown: $('breakdown'), notes: $('notes')
+      };
+
+      // === 新增：按钮组逻辑处理 ===
+
+      // 0. 下拉改按钮（项目类型 / 计费模式 / 单位）
+      function syncSegmented(id){
+        const sel = $(id);
+        const group = document.querySelector(`.segmented[data-for="${id}"]`);
+        if (!sel || !group) return;
+        group.querySelectorAll('button.seg-btn[data-value]').forEach(btn => {
+          const on = String(btn.dataset.value) === String(sel.value);
+          btn.classList.toggle('active', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      }
+      function initSegmented(){
+        document.querySelectorAll('.segmented[data-for]').forEach(group => {
+          const id = group.dataset.for;
+          const sel = $(id);
+          if (!sel) return;
+
+          group.addEventListener('click', (e) => {
+            const btn = e.target.closest('button.seg-btn[data-value]');
+            if (!btn) return;
+            sel.value = btn.dataset.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            syncSegmented(id);
+          });
+
+          // 初始化同步
+          syncSegmented(id);
+        });
+      }
+
+      
+      // 1. 税率 Chips
+      const vatChips = document.querySelectorAll('#vatChips .chip');
+      vatChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          // 移除其他选中
+          vatChips.forEach(c => c.classList.remove('active'));
+          // 选中当前
+          chip.classList.add('active');
+          // 设置值
+          els.vatRate.value = chip.dataset.val;
+        });
+      });
+      // 监听输入框手动修改，取消按钮选中状态
+      els.vatRate.addEventListener('input', () => {
+         vatChips.forEach(c => c.classList.remove('active'));
+      });
+
+      // 2. 承担方 Chips
+      const payerChips = document.querySelectorAll('#payerChips .chip');
+      payerChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          payerChips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          els.payer.value = chip.dataset.val;
+          updateUI();
+        });
+      });
+
+
+      function setNote(msg, isError=false){
+        els.notes.innerText = msg;
+        els.notes.style.color = isError ? 'var(--danger)' : 'var(--text-sub)';
+      }
+
+      const fmtMoney = n => isFinite(n) ? n.toLocaleString("zh-CN", {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
+      const safeNum = v => { const n = Number(v); return isFinite(n) ? n : NaN; };
+
+      const defaultTiers = (type) => {
+        const common = [
+          {from:0, to:100}, {from:100, to:500}, {from:500, to:1000},
+          {from:1000, to:5000}, {from:5000, to:10000}, {from:10000, to:100000}, {from:100000, to:1000000}, {from:1000000, to:null}
+        ];
+        const rates = {
+          goods: [1.5, 1.1, 0.8, 0.5, 0.25, 0.05, 0.01, 0.01],
+          services: [1.5, 0.8, 0.45, 0.25, 0.1, 0.05, 0.01, 0.01],
+          engineering: [1.0, 0.7, 0.55, 0.35, 0.2, 0.05, 0.01, 0.01]
+        };
+        const r = rates[type] || rates.engineering;
+        return common.map((item, i) => ({ ...item, rate: r[i] }));
+      };
+
+      function updateUI() {
+        const m = els.pricingModel.value;
+        els.percentageWrap.style.display = m === 'percentage' ? 'block' : 'none';
+        els.fixedWrap.style.display = m === 'fixed' ? 'block' : 'none';
+        els.tierConfigWrap.style.display = m === 'tiered' ? 'block' : 'none';
+        
+        // Payer Custom Logic
+        const p = els.payer.value;
+        els.payerCustom.style.display = p === 'custom' ? 'block' : 'none';
+      }
+
+
+      const STORAGE_KEY = 'agencyFeeCalc.v1';
+
+      function saveState(){
+        const state = {
+          projectType: els.projectType.value,
+          pricingModel: els.pricingModel.value,
+          amount: els.amount.value,
+          amountUnit: els.amountUnit.value,
+          rate: els.rate.value,
+          fixedFee: els.fixedFee.value,
+          vatRate: els.vatRate.value,
+          taxMode: els.taxMode.value,
+          payer: els.payer.value,
+          payerCustom: els.payerCustom.value,
+          cap: els.cap.value,
+          floor: els.floor.value,
+          tierConfig: els.tierConfig.value
+        };
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+      }
+
+      function loadState(){
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const s = JSON.parse(raw);
+          if (!s || typeof s !== 'object') return;
+
+          if (s.projectType) els.projectType.value = s.projectType;
+          if (s.pricingModel) els.pricingModel.value = s.pricingModel;
+          if (s.amount !== undefined) els.amount.value = s.amount;
+          if (s.amountUnit) els.amountUnit.value = s.amountUnit;
+          if (s.rate !== undefined) els.rate.value = s.rate;
+          if (s.fixedFee !== undefined) els.fixedFee.value = s.fixedFee;
+          if (s.vatRate !== undefined) els.vatRate.value = s.vatRate;
+          if (s.taxMode) els.taxMode.value = s.taxMode;
+          if (s.payer) els.payer.value = s.payer;
+          if (s.payerCustom !== undefined) els.payerCustom.value = s.payerCustom;
+          if (s.cap !== undefined) els.cap.value = s.cap;
+          if (s.floor !== undefined) els.floor.value = s.floor;
+          if (s.tierConfig) els.tierConfig.value = s.tierConfig;
+
+          // 同步 Chips 选中态
+          $$('#vatChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === String(els.vatRate.value)));
+          $$('#payerChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === String(els.payer.value)));
+          syncSegmented('projectType');
+          syncSegmented('amountUnit');
+          syncSegmented('pricingModel');
+        } catch(e) {}
+      }
+
+      function resetTiers() {
+        els.tierConfig.value = JSON.stringify(defaultTiers(els.projectType.value), null, 2);
+      }
+
+      function calculate() {
+        updateUI();
+        
+        let baseVal = safeNum(els.amount.value);
+        if (baseVal < 0) { setNote('校验失败：计费基数金额不能为负。', true); return; }
+        const baseCNY = els.amountUnit.value === 'WAN' ? baseVal * 10000 : baseVal;
+        const baseWan = baseCNY / 10000;
+
+        let net = 0;
+        let rows = [];
+        const model = els.pricingModel.value;
+
+        if (model === 'fixed') {
+          net = safeNum(els.fixedFee.value);
+          rows.push({ label: '固定总价', used: '-', rate: '-', net });
+        } else if (model === 'percentage') {
+          const r = safeNum(els.rate.value);
+          net = baseCNY * (r / 100);
+          rows.push({ label: '统一费率', used: baseWan, rate: r, net });
+        } else {
+          let tiers;
+          try { tiers = JSON.parse(els.tierConfig.value); } catch(e) { setNote('校验失败：分段费率配置JSON格式错误。', true); return; }
+          
+          for (const t of tiers) {
+            const from = Number(t.from);
+            const to = t.to === null ? Infinity : Number(t.to);
+            if (baseWan <= from) continue;
+            
+            const used = Math.min(baseWan, to) - from;
+            const segNet = used * 10000 * (t.rate / 100);
+            net += segNet;
+            
+            rows.push({
+              label: t.to === null ? `${from}以上` : `${from}-${to}`,
+              used: used,
+              rate: t.rate,
+              net: segNet
+            });
+            if (baseWan <= to) break;
+          }
+        }
+
+        const cap = safeNum(els.cap.value);
+        const floor = safeNum(els.floor.value);
+        let note = "";
+        
+        if (floor > 0 && net < floor) { net = floor; note = "触发保底"; }
+        if (cap > 0 && net > cap) { net = cap; note = "触发封顶"; }
+
+        const vatRatio = safeNum(els.vatRate.value) / 100;
+        let gross = 0, vatAmt = 0;
+        
+        if (els.taxMode.value === 'add') {
+          vatAmt = net * vatRatio;
+          gross = net + vatAmt;
+        } else {
+          gross = net;
+          net = gross / (1 + vatRatio);
+          vatAmt = gross - net;
+        }
+
+        els.oType.innerText = els.projectType.options[els.projectType.selectedIndex].text;
+        els.oModel.innerText = els.pricingModel.options[els.pricingModel.selectedIndex].text;
+        
+        // Payer Display Text
+        if (els.payer.value === 'custom') {
+          els.oPayer.innerText = els.payerCustom.value || '自定义';
+        } else if (els.payer.value === 'buyer') {
+          els.oPayer.innerText = '采购人支付';
+        } else {
+          els.oPayer.innerText = '中标人支付';
+        }
+
+        els.oNet.innerText = fmtMoney(net);
+        els.oGross.innerText = fmtMoney(gross);
+        els.oVat.innerText = fmtMoney(vatAmt);
+
+        const html = rows.map(r => `
+          <tr>
+            <td>${r.label}</td>
+            <td>${isFinite(r.used)?fmtMoney(r.used):r.used}</td>
+            <td>${isFinite(r.rate)?r.rate+'%':r.rate}</td>
+            <td>${fmtMoney(r.net)}</td>
+          </tr>
+        `).join('');
+        els.breakdown.innerHTML = html + (note ? `<tr><td colspan="4" style="color:var(--primary)">${note}</td></tr>` : '');
+        
+        setNote(`说明：计费基数 ${fmtMoney(baseCNY)}元，税率 ${els.vatRate.value}%。${note ? ' ' + note : ''}`);
+        saveState();
+      }
+
+      els.projectType.addEventListener('change', resetTiers);
+      els.pricingModel.addEventListener('change', updateUI);
+      // Payer change is now handled by Chips click event
+
+      $('btnCalc').addEventListener('click', calculate);
+      // 回车触发计算（输入框内）
+      ['amount','rate','fixedFee','vatRate','cap','floor','payerCustom'].forEach(id => {
+        const node = $(id);
+        if (!node) return;
+        node.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); calculate(); }
+        });
+      });
+
+      $('btnReset').addEventListener('click', () => { location.reload(); });
+      $('btnPrint').addEventListener('click', () => window.print());
+
+      initSegmented();
+      resetTiers();
+      loadState();
+      updateUI();
+      setNote('说明：结果仅供参考，具体以合同及招标文件约定为准。');
+    })();
+  </script>
+</body>
+</html>

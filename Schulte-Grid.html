@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>舒尔特注意力训练</title>
+  <style>
+    :root{
+      --fg:#111; --muted:#666; --bg:#f6f7f9; --card:#fff;
+      --bd:1px solid rgba(0,0,0,.12);
+      --shadow:0 6px 18px rgba(0,0,0,.08);
+      --r:12px;
+      --gap:12px;
+      --cell-radius:14px;
+      --scale: 1;
+      --cellSize: 92px;
+      --fontSize: 28px;
+      --markDone: 1; /* 1=正确闪烁开；0=正确闪烁关 */
+    }
+
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg);}
+    .wrap{max-width:980px;margin:0 auto;padding:18px 14px 20px;}
+    header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px;}
+    h1{font-size:18px;margin:0;}
+
+    .card{background:var(--card);border:var(--bd);border-radius:var(--r);box-shadow:var(--shadow);padding:12px;}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+    label{font-size:13px;color:var(--muted);}
+    select,button{border:var(--bd);background:#fff;border-radius:10px;padding:10px 12px;font-size:14px;cursor:pointer;}
+    button.primary{background:#0b5fff;border-color:transparent;color:#fff;}
+    button:disabled{opacity:.55;cursor:not-allowed;}
+
+    .status{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-top:10px;}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:999px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);font-size:13px;color:var(--muted);}
+    .pill b{color:var(--fg);font-weight:800;font-variant-numeric:tabular-nums;}
+    .hint{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.4;}
+
+    #mainCard{transform: scale(var(--scale));transform-origin: top center;}
+
+    .grid-wrap{margin-top:10px;}
+    .grid{display:grid;gap:var(--gap);width:100%;}
+
+    .cell{
+      width:var(--cellSize);
+      height:var(--cellSize);
+      border-radius:var(--cell-radius);
+      border:var(--bd);
+      background:#fff;
+      box-shadow:0 2px 10px rgba(0,0,0,.05);
+      cursor:pointer;
+      padding:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      font-variant-numeric:tabular-nums;
+      font-size:var(--fontSize);
+      line-height:1;
+      user-select:none;
+      transition: background-color .12s ease, border-color .12s ease, transform .06s ease;
+    }
+
+    .cell.flash-ok{
+      background: rgba(10,122,47, calc(.14 * var(--markDone)));
+      border-color: rgba(10,122,47, calc(.45 * var(--markDone) + .12));
+    }
+
+    .cell.flash-bad{
+      background: rgba(176,0,32,.12);
+      border-color: rgba(176,0,32,.42);
+    }
+
+    .cell:active{ transform: scale(.99); }
+
+    .footer{margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;}
+
+    @media (max-width: 700px){
+      :root{ --gap: 10px; }
+      .wrap{ padding: 14px 12px 16px; }
+      .card{ padding: 10px; }
+      select,button{ padding: 9px 10px; }
+      .pill{ padding: 7px 9px; }
+    }
+    @media (max-width: 520px){
+      :root{ --gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>舒尔特注意力训练</h1>
+      <div class="card controls">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label for="mode">格数</label>
+          <select id="mode">
+            <option value="4">4×4</option>
+            <option value="5" selected>5×5</option>
+            <option value="6">6×6</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label for="contentMode">内容</label>
+          <select id="contentMode" aria-label="内容模式">
+            <option value="num" selected>数字</option>
+            <option value="cn">汉字</option>
+            <option value="az">字母</option>
+          </select>
+        </div>
+
+        <button id="startBtn" class="primary">开始/重开</button>
+        <button id="pauseBtn">暂停</button>
+        <button id="hintBtn">提示</button>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-left:6px;">
+          <label for="markToggle">正确反馈</label>
+          <select id="markToggle" aria-label="正确点击反馈开关">
+            <option value="1" selected>开</option>
+            <option value="0">关</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <div class="card" id="mainCard">
+      <div class="status">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <span class="pill">目标：<b id="target">1</b></span>
+          <span class="pill">用时：<b id="time">00:00.0</b></span>
+          <span class="pill">错误：<b id="mistakes">0</b></span>
+          <span class="pill">完成：<b id="progress">0</b>/<b id="total">25</b></span>
+        </div>
+        <span class="pill">状态：<b id="state">未开始</b></span>
+      </div>
+
+      <div class="hint" id="modeHint">按从 1 到 N 的顺序点击。</div>
+
+      <div class="grid-wrap">
+        <div id="grid" class="grid"></div>
+      </div>
+
+      <div class="footer">
+        <div class="hint" id="result"></div>
+        <div class="hint">建议：同一模式连续训练 3 次，取中位数。</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const modeEl = document.getElementById('mode');
+      const contentModeEl = document.getElementById('contentMode');
+      const markToggleEl = document.getElementById('markToggle');
+
+      const startBtn = document.getElementById('startBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const hintBtn  = document.getElementById('hintBtn');
+
+      const gridEl = document.getElementById('grid');
+      const mainCard = document.getElementById('mainCard');
+
+      const targetEl = document.getElementById('target');
+      const timeEl = document.getElementById('time');
+      const mistakesEl = document.getElementById('mistakes');
+      const progressEl = document.getElementById('progress');
+      const totalEl = document.getElementById('total');
+      const stateEl = document.getElementById('state');
+      const resultEl = document.getElementById('result');
+      const modeHintEl = document.getElementById('modeHint');
+
+      // 更强反差：高饱和 + 偏深（白底可读）
+      const COLOR_PALETTE = [
+        "#0047FF","#4C1D95","#BE185D","#B91C1C","#C2410C",
+        "#A16207","#15803D","#0F766E","#0369A1","#111827"
+      ];
+
+      // 汉字模式：常用单字（共 36 个，覆盖 6x6），每格一个字
+      // 顺序即“点击顺序”：第 1 个字 → 第 2 个字 → ...
+      const CN_COMMON_36 = [
+        "我","你","他","她","它","们",
+        "的","了","在","是","有","不",
+        "这","那","来","去","上","下",
+        "大","小","多","少","中","新",
+        "好","很","也","就","都","还",
+        "看","想","说","做","能","会"
+      ];
+
+      let gridColors = [];
+      let size = 5, total = 25, next = 1, mistakes = 0;
+      let started = false, paused = false, finished = false;
+
+      let t0 = 0;
+      let pausedAcc = 0;
+      let timer = null;
+
+      // solved：防止重复点同一正确项刷进度
+      const solved = new Set();
+
+      function pad2(n){ return String(n).padStart(2,'0'); }
+      function fmt(ms){
+        const s = ms/1000;
+        const m = Math.floor(s/60);
+        const sec = Math.floor(s%60);
+        const d = Math.floor((s - Math.floor(s))*10);
+        return `${pad2(m)}:${pad2(sec)}.${d}`;
+      }
+
+      function shuffle(a){
+        for(let i=a.length-1;i>0;i--){
+          const j = Math.floor(Math.random()*(i+1));
+          [a[i],a[j]]=[a[j],a[i]];
+        }
+        return a;
+      }
+
+      function setState(t){ stateEl.textContent = t; }
+
+      function resetUI(){
+        targetEl.textContent = String(next);
+        mistakesEl.textContent = String(mistakes);
+        progressEl.textContent = String(next-1);
+        totalEl.textContent = String(total);
+        timeEl.textContent = "00:00.0";
+        resultEl.textContent = "";
+      }
+
+      function setCSSVar(name, value){
+        document.documentElement.style.setProperty(name, value);
+      }
+
+      function applyGridTemplate(){
+        gridEl.style.gridTemplateColumns = `repeat(${size}, var(--cellSize))`;
+      }
+
+      function pickColorAvoidNeighbors(i){
+        const leftIndex = (i % size !== 0) ? (i - 1) : -1;
+        const upIndex   = (i - size >= 0) ? (i - size) : -1;
+
+        const leftColor = leftIndex >= 0 ? gridColors[leftIndex] : null;
+        const upColor   = upIndex >= 0 ? gridColors[upIndex] : null;
+
+        let tries = 0;
+        while (tries < 50){
+          const c = COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+          if (c !== leftColor && c !== upColor) return c;
+          tries++;
+        }
+        return COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+      }
+
+      function computeLayout(){
+        const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')) || 12;
+        const gridWrapW = gridEl.parentElement.getBoundingClientRect().width;
+        const maxCellByWidth = Math.floor((gridWrapW - gap * (size - 1)) / size);
+
+        const cellSize = Math.max(54, Math.min(106, maxCellByWidth));
+        const fontSize = Math.max(18, Math.min(48, Math.round(cellSize * 0.46)));
+
+        setCSSVar('--cellSize', cellSize + 'px');
+        setCSSVar('--fontSize', fontSize + 'px');
+        applyGridTemplate();
+
+        setCSSVar('--scale', '1');
+
+        requestAnimationFrame(() => {
+          const rect = mainCard.getBoundingClientRect();
+          const availableH = window.innerHeight - 18;
+          if (rect.height <= availableH){
+            setCSSVar('--scale', '1');
+            return;
+          }
+          const scale = Math.max(0.72, Math.min(0.98, availableH / rect.height));
+          setCSSVar('--scale', String(scale));
+        });
+      }
+
+      function flash(el, cls, ms){
+        el.classList.remove('flash-ok','flash-bad');
+        el.classList.add(cls);
+        setTimeout(() => el.classList.remove(cls), ms);
+      }
+
+      function toLetters(n){
+        let x = n, s = "";
+        while (x > 0){
+          x--;
+          s = String.fromCharCode(65 + (x % 26)) + s;
+          x = Math.floor(x / 26);
+        }
+        return s;
+      }
+
+      function makeItems(total, contentMode){
+        const items = [];
+        for(let i=1;i<=total;i++){
+          if(contentMode === "num"){
+            items.push({ label: String(i), order: i });
+          } else if(contentMode === "cn"){
+            items.push({ label: CN_COMMON_36[i-1] || "字", order: i });
+          } else {
+            items.push({ label: toLetters(i), order: i });
+          }
+        }
+        return items;
+      }
+
+      function updateModeHint(){
+        const cm = contentModeEl.value;
+        if(cm === "num"){
+          modeHintEl.textContent = "按从 1 到 N 的顺序点击。";
+        } else if(cm === "cn"){
+          modeHintEl.textContent = "按提示顺序点击（常用字序列）：我→你→他→她→它→们→的→了→在→是…";
+        } else {
+          modeHintEl.textContent = "按字母顺序点击：A→B→C→…";
+        }
+      }
+
+      function buildGrid(){
+        gridEl.innerHTML = "";
+        applyGridTemplate();
+
+        const contentMode = contentModeEl.value; // num/cn/az
+        const items = makeItems(total, contentMode);
+
+        shuffle(items);
+
+        gridColors = new Array(items.length);
+        solved.clear();
+
+        items.forEach((it, idx)=>{
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'cell';
+          b.textContent = it.label;
+
+          const color = pickColorAvoidNeighbors(idx);
+          gridColors[idx] = color;
+          b.style.color = color;
+
+          b.dataset.order = String(it.order);
+          b.dataset.key = `${contentMode}:${it.order}`;
+
+          b.addEventListener('click', ()=>pick(b));
+          gridEl.appendChild(b);
+        });
+
+        computeLayout();
+      }
+
+      function pick(btn){
+        if(!started || paused || finished) return;
+
+        const order = parseInt(btn.dataset.order, 10);
+        const key = btn.dataset.key;
+
+        if (solved.has(key)){
+          flash(btn, 'flash-bad', 120);
+          return;
+        }
+
+        if (order === next){
+          flash(btn, 'flash-ok', 120);
+          solved.add(key);
+
+          next++;
+          progressEl.textContent = String(next - 1);
+          targetEl.textContent = String(next <= total ? next : total);
+
+          if(next > total) finish();
+        } else {
+          mistakes++;
+          mistakesEl.textContent = String(mistakes);
+          flash(btn, 'flash-bad', 160);
+        }
+      }
+
+      function start(){
+        size = parseInt(modeEl.value,10);
+        total = size*size;
+        next = 1;
+        mistakes = 0;
+        started = true;
+        paused = false;
+        finished = false;
+        solved.clear();
+
+        pausedAcc = 0;
+        t0 = Date.now();
+
+        if(timer) clearInterval(timer);
+        timer = setInterval(()=>{
+          if(!started || paused || finished) return;
+          const ms = (Date.now()-t0) + pausedAcc;
+          timeEl.textContent = fmt(ms);
+        }, 100);
+
+        resetUI();
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = "暂停";
+        setState("进行中");
+
+        totalEl.textContent = String(total);
+        updateModeHint();
+        buildGrid();
+      }
+
+      function pauseToggle(){
+        if(!started || finished) return;
+
+        if(!paused){
+          paused = true;
+          setState("已暂停");
+          pauseBtn.textContent = "继续";
+          pausedAcc += (Date.now() - t0);
+        } else {
+          paused = false;
+          setState("进行中");
+          pauseBtn.textContent = "暂停";
+          t0 = Date.now();
+        }
+        computeLayout();
+      }
+
+      function finish(){
+        finished = true;
+        paused = false;
+        setState("已完成");
+        pauseBtn.disabled = true;
+
+        const ms = pausedAcc + (Date.now() - t0);
+        timeEl.textContent = fmt(ms);
+
+        const sec = (ms/1000).toFixed(1);
+        const avg = ((ms/total)/1000).toFixed(2);
+        resultEl.textContent = `结果：${size}×${size}，总用时 ${sec}s，平均 ${avg}s/格，错误 ${mistakes} 次。`;
+        computeLayout();
+      }
+
+      function hint(){
+        if(!started || paused || finished) return;
+        const cells = gridEl.querySelectorAll('.cell');
+        for(const c of cells){
+          const order = parseInt(c.dataset.order, 10);
+          if(order === next){
+            flash(c, 'flash-bad', 220);
+            break;
+          }
+        }
+      }
+
+      function applyMarkToggle(){
+        setCSSVar('--markDone', markToggleEl.value);
+      }
+
+      startBtn.addEventListener('click', start);
+      pauseBtn.addEventListener('click', pauseToggle);
+      hintBtn.addEventListener('click', hint);
+
+      modeEl.addEventListener('change', () => {
+        size = parseInt(modeEl.value,10);
+        total = size*size;
+        totalEl.textContent = String(total);
+        computeLayout();
+      });
+
+      contentModeEl.addEventListener('change', () => {
+        updateModeHint();
+        if (started && !finished){
+          start();
+          return;
+        }
+        buildGrid();
+      });
+
+      markToggleEl.addEventListener('change', applyMarkToggle);
+      window.addEventListener('resize', () => computeLayout());
+
+      // 初始化
+      pauseBtn.disabled = true;
+      setState("未开始");
+      applyMarkToggle();
+      resetUI();
+
+      size = parseInt(modeEl.value,10);
+      total = size*size;
+      totalEl.textContent = String(total);
+      updateModeHint();
+      buildGrid();
+    })();
+  </script>
+</body>
+</html>
