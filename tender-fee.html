@@ -99,7 +99,7 @@
 
     .hint { font-size: 12px; color: var(--text-sub); margin-top: 6px; line-height: 1.4; }
 
-    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+    .btn-row { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 24px; }
     button.action {
       padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;
     }
@@ -197,7 +197,7 @@
       .grid { gap: 14px; }
       .card { padding: 16px; }
       input, select, textarea { font-size: 16px; } /* iOS 防止输入放大 */
-      .btn-row { grid-template-columns: 1fr 1fr; position: sticky; bottom: 12px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+      .btn-row { grid-template-columns: 1fr; position: sticky; bottom: 12px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
       .result-summary { grid-template-columns: 1fr; }
       .kpi-card.main { grid-column: span 1; }
       th, td { padding: 10px 10px; }
@@ -343,15 +343,15 @@
         <div class="form-group">
           <label>增值税税率（可快速选择）</label>
           <div class="input-group">
-            <input id="vatRate" type="number" value="6" />
+            <input id="vatRate" type="number" value="0" />
             <span class="suffix">%</span>
           </div>
           <div class="chip-group" id="vatChips">
-            <div class="chip active" data-val="6">6%（服务）</div>
+            <div class="chip" data-val="6">6%（服务）</div>
             <div class="chip" data-val="13">13%（一般税率）</div>
             <div class="chip" data-val="3">3%（小规模）</div>
             <div class="chip" data-val="1">1%（优惠）</div>
-            <div class="chip" data-val="0">0%（免税）</div>
+            <div class="chip active" data-val="0">0%（免税）</div>
           </div>
         </div>
 
@@ -400,7 +400,6 @@
 
         <div class="btn-row">
           <button class="action btn-secondary" id="btnReset">重置</button>
-          <button class="action btn-primary" id="btnCalc">开始计算</button>
         </div>
       </section>
 
@@ -458,9 +457,14 @@
               </tr>
             </thead>
             <tbody id="breakdown">
-              <tr><td colspan="4" style="text-align:center; color:var(--text-sub)">点击左侧“开始计算”生成结果</td></tr>
+              <tr><td colspan="4" style="text-align:center; color:var(--text-sub)">输入金额后自动生成结果</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label>历史计算记录（输入结束5秒后自动记录）</label>
+          <div id="historyList" class="hint">暂无记录</div>
         </div>
 
         <div class="hint" id="notes" style="margin-top:16px;">
@@ -586,6 +590,8 @@
           chip.classList.add('active');
           // 设置值
           els.vatRate.value = chip.dataset.val;
+          calculate();
+          scheduleHistory();
         });
       });
       // 监听输入框手动修改，取消按钮选中状态
@@ -601,6 +607,8 @@
           chip.classList.add('active');
           els.payer.value = chip.dataset.val;
           updateUI();
+          calculate();
+          scheduleHistory();
         });
       });
 
@@ -640,6 +648,9 @@
 
 
       const STORAGE_KEY = 'agencyFeeCalc.v1';
+      const history = [];
+      let historyTimer = null;
+      let lastSnapshot = null;
 
       function saveState(){
         const state = {
@@ -694,10 +705,57 @@
         els.tierConfig.value = JSON.stringify(defaultTiers(els.projectType.value), null, 2);
       }
 
+      function resetOutput(message) {
+        els.oNet.innerText = fmtMoney(0);
+        els.oGross.innerText = fmtMoney(0);
+        els.oVat.innerText = fmtMoney(0);
+        els.breakdown.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub)">${message}</td></tr>`;
+        setNote(message);
+        saveState();
+        lastSnapshot = null;
+      }
+
+      function renderHistory() {
+        const list = $('historyList');
+        if (!list) return;
+        if (!history.length) {
+          list.innerText = '暂无记录';
+          return;
+        }
+        list.innerHTML = history.map((item) => {
+          return `<div>${item.time}：含税 ${fmtMoney(item.gross)} 元（不含税 ${fmtMoney(item.net)} 元，税额 ${fmtMoney(item.vat)} 元）</div>`;
+        }).join('');
+      }
+
+      function recordHistory() {
+        if (!lastSnapshot) return;
+        history.unshift({
+          time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+          net: lastSnapshot.net,
+          gross: lastSnapshot.gross,
+          vat: lastSnapshot.vat
+        });
+        if (history.length > 10) history.pop();
+        renderHistory();
+      }
+
+      function scheduleHistory() {
+        if (historyTimer) {
+          clearTimeout(historyTimer);
+        }
+        historyTimer = setTimeout(() => {
+          recordHistory();
+        }, 5000);
+      }
+
       function calculate() {
         updateUI();
         
         let baseVal = safeNum(els.amount.value);
+        if (!isFinite(baseVal)) {
+          resetOutput('请输入计费基数金额后自动生成结果。');
+          return;
+        }
         if (baseVal < 0) { setNote('校验失败：计费基数金额不能为负。', true); return; }
         const baseCNY = els.amountUnit.value === 'WAN' ? baseVal * 10000 : baseVal;
         const baseWan = baseCNY / 10000;
@@ -708,9 +766,17 @@
 
         if (model === 'fixed') {
           net = safeNum(els.fixedFee.value);
+          if (!isFinite(net)) {
+            resetOutput('请输入固定总价后自动生成结果。');
+            return;
+          }
           rows.push({ label: '固定总价', used: '-', rate: '-', net });
         } else if (model === 'percentage') {
           const r = safeNum(els.rate.value);
+          if (!isFinite(r)) {
+            resetOutput('请输入费率百分比后自动生成结果。');
+            return;
+          }
           net = baseCNY * (r / 100);
           rows.push({ label: '统一费率', used: baseWan, rate: r, net });
         } else {
@@ -770,6 +836,7 @@
         els.oNet.innerText = fmtMoney(net);
         els.oGross.innerText = fmtMoney(gross);
         els.oVat.innerText = fmtMoney(vatAmt);
+        lastSnapshot = { net, gross, vat: vatAmt };
 
         const html = rows.map(r => `
           <tr>
@@ -785,17 +852,24 @@
         saveState();
       }
 
-      els.projectType.addEventListener('change', resetTiers);
-      els.pricingModel.addEventListener('change', updateUI);
+      els.projectType.addEventListener('change', () => {
+        resetTiers();
+        calculate();
+        scheduleHistory();
+      });
+      els.pricingModel.addEventListener('change', () => {
+        updateUI();
+        calculate();
+        scheduleHistory();
+      });
       // Payer change is now handled by Chips click event
-
-      $('btnCalc').addEventListener('click', calculate);
-      // 回车触发计算（输入框内）
-      ['amount','rate','fixedFee','vatRate','cap','floor','payerCustom'].forEach(id => {
+      ['amount','amountUnit','rate','fixedFee','vatRate','taxMode','cap','floor','payerCustom','tierConfig'].forEach(id => {
         const node = $(id);
         if (!node) return;
-        node.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') { e.preventDefault(); calculate(); }
+        const eventName = node.tagName === 'SELECT' ? 'change' : 'input';
+        node.addEventListener(eventName, () => {
+          calculate();
+          scheduleHistory();
         });
       });
 
@@ -806,7 +880,7 @@
       resetTiers();
       loadState();
       updateUI();
-      setNote('说明：结果仅供参考，具体以合同及招标文件约定为准。');
+      calculate();
     })();
   </script>
 </body>
