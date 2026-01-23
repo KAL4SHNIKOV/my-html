@@ -65,9 +65,15 @@
     .btn-icon:hover { background: var(--accent); }
     
     .grid {
-      display: grid; grid-template-columns: minmax(320px, 380px) 1fr; gap: 16px; align-items: start;
+      display: flex; gap: 16px; align-items: flex-start; flex-wrap: nowrap;
     }
-    @media (max-width: 767px) { .grid { grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr); gap: 12px; } }
+    .grid > section { min-width: 0; }
+    .grid > section:first-child { flex: 0 0 360px; }
+    .grid > section:last-child { flex: 1 1 auto; }
+    @media (max-width: 767px) {
+      .grid { gap: 12px; }
+      .grid > section:first-child { flex-basis: 320px; }
+    }
 
     .card {
       background: var(--card-bg); border-radius: var(--radius);
@@ -187,14 +193,14 @@
   
     /* 设备尺寸优化：iPhone / iPad / macOS */
     @media (min-width: 1025px) {
-      .grid { grid-template-columns: minmax(360px, 400px) 1fr; }
+      .grid > section:first-child { flex-basis: 400px; }
       .card:first-child { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
     }
 
     @media (max-width: 767px) {
       .wrap { padding: 14px 12px calc(14px + env(safe-area-inset-bottom)); }
       header { flex-direction: column; align-items: flex-start; gap: 12px; }
-      .grid { gap: 14px; }
+      .grid { gap: 12px; }
       .card { padding: 16px; }
       input, select, textarea { font-size: 16px; } /* iOS 防止输入放大 */
       .btn-row { grid-template-columns: 1fr; position: sticky; bottom: 12px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
