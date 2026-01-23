@@ -65,16 +65,12 @@
     .btn-icon:hover { background: var(--accent); }
     
     .grid {
-      display: flex; gap: 16px; align-items: flex-start; flex-wrap: nowrap;
+      display: flex; flex-direction: row; gap: 16px; align-items: flex-start; flex-wrap: nowrap;
     }
     .grid > section { min-width: 0; }
     .grid > section:first-child { flex: 0 0 360px; }
     .grid > section:last-child { flex: 1 1 auto; }
-    @media (max-aspect-ratio: 9/16) {
-      .grid { flex-direction: column; gap: 12px; }
-      .grid > section:first-child { flex-basis: auto; }
-    }
-    @media (max-width: 767px) {
+    @media (max-aspect-ratio: 3/4) {
       .grid { flex-direction: column; gap: 12px; }
       .grid > section:first-child { flex-basis: auto; }
     }
