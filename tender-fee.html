@@ -65,9 +65,9 @@
     .btn-icon:hover { background: var(--accent); }
     
     .grid {
-      display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start;
+      display: grid; grid-template-columns: minmax(320px, 380px) 1fr; gap: 16px; align-items: start;
     }
-    @media (max-width: 767px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 767px) { .grid { grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr); gap: 12px; } }
 
     .card {
       background: var(--card-bg); border-radius: var(--radius);
@@ -187,7 +187,7 @@
   
     /* 设备尺寸优化：iPhone / iPad / macOS */
     @media (min-width: 1025px) {
-      .grid { grid-template-columns: 400px 1fr; }
+      .grid { grid-template-columns: minmax(360px, 400px) 1fr; }
       .card:first-child { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
     }
 
