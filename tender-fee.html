@@ -64,15 +64,32 @@
     }
     .btn-icon:hover { background: var(--accent); }
     
+    /* 默认布局：电脑端左右布局 */
     .grid {
-      display: flex; flex-direction: row; gap: 16px; align-items: flex-start; flex-wrap: nowrap;
+      display: flex; 
+      flex-direction: row; 
+      gap: 16px; 
+      align-items: flex-start; 
+      flex-wrap: nowrap;
     }
     .grid > section { min-width: 0; }
-    .grid > section:first-child { flex: 0 0 360px; }
+    .grid > section:first-child { flex: 0 0 400px; }
     .grid > section:last-child { flex: 1 1 auto; }
-    @media (max-aspect-ratio: 3/4) {
-      .grid { flex-direction: column; gap: 12px; }
-      .grid > section:first-child { flex-basis: auto; }
+
+    /* 手机端：上下布局 */
+    @media (max-width: 768px) {
+      .grid { 
+        flex-direction: column; 
+        gap: 12px; 
+      }
+      .grid > section:first-child { 
+        flex: 1 1 auto;
+        width: 100%;
+      }
+      .grid > section:last-child {
+        flex: 1 1 auto;
+        width: 100%;
+      }
     }
 
     .card {
@@ -191,19 +208,32 @@
       .kpi-card { border: 1px solid #ddd; background: #fff !important; }
     }
   
-    /* 设备尺寸优化：iPhone / iPad / macOS */
+    /* 大屏设备优化：左侧固定 */
     @media (min-width: 1025px) {
-      .grid > section:first-child { flex-basis: 400px; }
-      .card:first-child { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+      .card:first-child { 
+        position: sticky; 
+        top: 12px; 
+        max-height: calc(100vh - 24px); 
+        overflow: auto; 
+      }
     }
 
-    @media (max-width: 767px) {
+    /* 手机端优化 */
+    @media (max-width: 768px) {
       .wrap { padding: 14px 12px calc(14px + env(safe-area-inset-bottom)); }
       header { flex-direction: column; align-items: flex-start; gap: 12px; }
-      .grid { gap: 12px; }
       .card { padding: 16px; }
       input, select, textarea { font-size: 16px; } /* iOS 防止输入放大 */
-      .btn-row { grid-template-columns: 1fr; position: sticky; bottom: 12px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+      .btn-row { 
+        grid-template-columns: 1fr; 
+        position: sticky; 
+        bottom: 12px; 
+        background: var(--bg); 
+        padding: 10px; 
+        border-radius: 12px; 
+        border: 1px solid var(--border); 
+        box-shadow: var(--shadow); 
+      }
       .result-summary { grid-template-columns: 1fr; }
       .kpi-card.main { grid-column: span 1; }
       th, td { padding: 10px 10px; }
@@ -215,8 +245,7 @@
       #amountUnit { width: 100% !important; }
     }
 
-  
-    /* Segmented button controls (replace select dropdowns) */
+    /* Segmented button controls */
     .hidden-control{
       position: absolute !important;
       left: -10000px !important;
@@ -376,7 +405,6 @@
         <details>
           <summary>高级设置（含税口径 / 封顶保底 / 分段费率）</summary>
           <div class="content">
-</div>
             
             <div class="form-group">
               <label>含税口径</label>
@@ -506,388 +534,4 @@
     }
 
     (function(){
-      const $ = (id) => document.getElementById(id);
-      const $$ = (sel) => document.querySelectorAll(sel);
-
-      // 主题切换逻辑
-      const btnTheme = $('btnTheme');
-      const iconSun = $('iconSun');
-      const iconMoon = $('iconMoon');
-      
-      function setTheme(isDark) {
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-        iconSun.style.display = isDark ? 'none' : 'block';
-        iconMoon.style.display = isDark ? 'block' : 'none';
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      }
-
-      const savedTheme = localStorage.getItem('theme');
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(savedTheme === 'dark' || (!savedTheme && systemDark));
-
-      btnTheme.addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-theme');
-        setTheme(current !== 'dark');
-      });
-
-      // 业务逻辑变量
-      const els = {
-        projectType: $('projectType'),
-        pricingModel: $('pricingModel'),
-        amount: $('amount'),
-        amountUnit: $('amountUnit'),
-        rate: $('rate'),
-        fixedFee: $('fixedFee'),
-        vatRate: $('vatRate'),
-        taxMode: $('taxMode'),
-        payer: $('payer'), // 这是一个 hidden input
-        payerCustom: $('payerCustom'),
-        cap: $('cap'),
-        floor: $('floor'),
-        tierConfig: $('tierConfig'),
-        percentageWrap: $('percentageWrap'),
-        fixedWrap: $('fixedWrap'),
-        tierConfigWrap: $('tierConfigWrap'),
-        oType: $('oType'), oModel: $('oModel'), oPayer: $('oPayer'),
-        oNet: $('oNet'), oGross: $('oGross'), oVat: $('oVat'),
-        breakdown: $('breakdown'), notes: $('notes')
-      };
-
-      // === 新增：按钮组逻辑处理 ===
-
-      // 0. 下拉改按钮（项目类型 / 计费模式 / 单位）
-      function syncSegmented(id){
-        const sel = $(id);
-        const group = document.querySelector(`.segmented[data-for="${id}"]`);
-        if (!sel || !group) return;
-        group.querySelectorAll('button.seg-btn[data-value]').forEach(btn => {
-          const on = String(btn.dataset.value) === String(sel.value);
-          btn.classList.toggle('active', on);
-          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
-      }
-      function initSegmented(){
-        document.querySelectorAll('.segmented[data-for]').forEach(group => {
-          const id = group.dataset.for;
-          const sel = $(id);
-          if (!sel) return;
-
-          group.addEventListener('click', (e) => {
-            const btn = e.target.closest('button.seg-btn[data-value]');
-            if (!btn) return;
-            sel.value = btn.dataset.value;
-            sel.dispatchEvent(new Event('change', { bubbles: true }));
-            syncSegmented(id);
-          });
-
-          // 初始化同步
-          syncSegmented(id);
-        });
-      }
-
-      
-      // 1. 税率 Chips
-      const vatChips = document.querySelectorAll('#vatChips .chip');
-      vatChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          // 移除其他选中
-          vatChips.forEach(c => c.classList.remove('active'));
-          // 选中当前
-          chip.classList.add('active');
-          // 设置值
-          els.vatRate.value = chip.dataset.val;
-          calculate();
-          scheduleHistory();
-        });
-      });
-      // 监听输入框手动修改，取消按钮选中状态
-      els.vatRate.addEventListener('input', () => {
-         vatChips.forEach(c => c.classList.remove('active'));
-      });
-
-      // 2. 承担方 Chips
-      const payerChips = document.querySelectorAll('#payerChips .chip');
-      payerChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          payerChips.forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          els.payer.value = chip.dataset.val;
-          updateUI();
-          calculate();
-          scheduleHistory();
-        });
-      });
-
-
-      function setNote(msg, isError=false){
-        els.notes.innerText = msg;
-        els.notes.style.color = isError ? 'var(--danger)' : 'var(--text-sub)';
-      }
-
-      const fmtMoney = n => isFinite(n) ? n.toLocaleString("zh-CN", {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
-      const safeNum = v => { const n = Number(v); return isFinite(n) ? n : NaN; };
-
-      const defaultTiers = (type) => {
-        const common = [
-          {from:0, to:100}, {from:100, to:500}, {from:500, to:1000},
-          {from:1000, to:5000}, {from:5000, to:10000}, {from:10000, to:100000}, {from:100000, to:1000000}, {from:1000000, to:null}
-        ];
-        const rates = {
-          goods: [1.5, 1.1, 0.8, 0.5, 0.25, 0.05, 0.01, 0.01],
-          services: [1.5, 0.8, 0.45, 0.25, 0.1, 0.05, 0.01, 0.01],
-          engineering: [1.0, 0.7, 0.55, 0.35, 0.2, 0.05, 0.01, 0.01]
-        };
-        const r = rates[type] || rates.engineering;
-        return common.map((item, i) => ({ ...item, rate: r[i] }));
-      };
-
-      function updateUI() {
-        const m = els.pricingModel.value;
-        els.percentageWrap.style.display = m === 'percentage' ? 'block' : 'none';
-        els.fixedWrap.style.display = m === 'fixed' ? 'block' : 'none';
-        els.tierConfigWrap.style.display = m === 'tiered' ? 'block' : 'none';
-        
-        // Payer Custom Logic
-        const p = els.payer.value;
-        els.payerCustom.style.display = p === 'custom' ? 'block' : 'none';
-      }
-
-
-      const STORAGE_KEY = 'agencyFeeCalc.v1';
-      const history = [];
-      let historyTimer = null;
-      let lastSnapshot = null;
-
-      function saveState(){
-        const state = {
-          projectType: els.projectType.value,
-          pricingModel: els.pricingModel.value,
-          amount: els.amount.value,
-          amountUnit: els.amountUnit.value,
-          rate: els.rate.value,
-          fixedFee: els.fixedFee.value,
-          vatRate: els.vatRate.value,
-          taxMode: els.taxMode.value,
-          payer: els.payer.value,
-          payerCustom: els.payerCustom.value,
-          cap: els.cap.value,
-          floor: els.floor.value,
-          tierConfig: els.tierConfig.value
-        };
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
-      }
-
-      function loadState(){
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return;
-          const s = JSON.parse(raw);
-          if (!s || typeof s !== 'object') return;
-
-          if (s.projectType) els.projectType.value = s.projectType;
-          if (s.pricingModel) els.pricingModel.value = s.pricingModel;
-          if (s.amount !== undefined) els.amount.value = s.amount;
-          if (s.amountUnit) els.amountUnit.value = s.amountUnit;
-          if (s.rate !== undefined) els.rate.value = s.rate;
-          if (s.fixedFee !== undefined) els.fixedFee.value = s.fixedFee;
-          if (s.vatRate !== undefined) els.vatRate.value = s.vatRate;
-          if (s.taxMode) els.taxMode.value = s.taxMode;
-          if (s.payer) els.payer.value = s.payer;
-          if (s.payerCustom !== undefined) els.payerCustom.value = s.payerCustom;
-          if (s.cap !== undefined) els.cap.value = s.cap;
-          if (s.floor !== undefined) els.floor.value = s.floor;
-          if (s.tierConfig) els.tierConfig.value = s.tierConfig;
-
-          // 同步 Chips 选中态
-          $$('#vatChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === String(els.vatRate.value)));
-          $$('#payerChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === String(els.payer.value)));
-          syncSegmented('projectType');
-          syncSegmented('amountUnit');
-          syncSegmented('pricingModel');
-        } catch(e) {}
-      }
-
-      function resetTiers() {
-        els.tierConfig.value = JSON.stringify(defaultTiers(els.projectType.value), null, 2);
-      }
-
-      function resetOutput(message) {
-        els.oNet.innerText = fmtMoney(0);
-        els.oGross.innerText = fmtMoney(0);
-        els.oVat.innerText = fmtMoney(0);
-        els.breakdown.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub)">${message}</td></tr>`;
-        setNote(message);
-        saveState();
-        lastSnapshot = null;
-      }
-
-      function renderHistory() {
-        const list = $('historyList');
-        if (!list) return;
-        if (!history.length) {
-          list.innerText = '暂无记录';
-          return;
-        }
-        list.innerHTML = history.map((item) => {
-          return `<div>${item.time}：含税 ${fmtMoney(item.gross)} 元（不含税 ${fmtMoney(item.net)} 元，税额 ${fmtMoney(item.vat)} 元）</div>`;
-        }).join('');
-      }
-
-      function recordHistory() {
-        if (!lastSnapshot) return;
-        history.unshift({
-          time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-          net: lastSnapshot.net,
-          gross: lastSnapshot.gross,
-          vat: lastSnapshot.vat
-        });
-        if (history.length > 10) history.pop();
-        renderHistory();
-      }
-
-      function scheduleHistory() {
-        if (historyTimer) {
-          clearTimeout(historyTimer);
-        }
-        historyTimer = setTimeout(() => {
-          recordHistory();
-        }, 5000);
-      }
-
-      function calculate() {
-        updateUI();
-        
-        let baseVal = safeNum(els.amount.value);
-        if (!isFinite(baseVal)) {
-          resetOutput('请输入计费基数金额后自动生成结果。');
-          return;
-        }
-        if (baseVal < 0) { setNote('校验失败：计费基数金额不能为负。', true); return; }
-        const baseCNY = els.amountUnit.value === 'WAN' ? baseVal * 10000 : baseVal;
-        const baseWan = baseCNY / 10000;
-
-        let net = 0;
-        let rows = [];
-        const model = els.pricingModel.value;
-
-        if (model === 'fixed') {
-          net = safeNum(els.fixedFee.value);
-          if (!isFinite(net)) {
-            resetOutput('请输入固定总价后自动生成结果。');
-            return;
-          }
-          rows.push({ label: '固定总价', used: '-', rate: '-', net });
-        } else if (model === 'percentage') {
-          const r = safeNum(els.rate.value);
-          if (!isFinite(r)) {
-            resetOutput('请输入费率百分比后自动生成结果。');
-            return;
-          }
-          net = baseCNY * (r / 100);
-          rows.push({ label: '统一费率', used: baseWan, rate: r, net });
-        } else {
-          let tiers;
-          try { tiers = JSON.parse(els.tierConfig.value); } catch(e) { setNote('校验失败：分段费率配置JSON格式错误。', true); return; }
-          
-          for (const t of tiers) {
-            const from = Number(t.from);
-            const to = t.to === null ? Infinity : Number(t.to);
-            if (baseWan <= from) continue;
-            
-            const used = Math.min(baseWan, to) - from;
-            const segNet = used * 10000 * (t.rate / 100);
-            net += segNet;
-            
-            rows.push({
-              label: t.to === null ? `${from}以上` : `${from}-${to}`,
-              used: used,
-              rate: t.rate,
-              net: segNet
-            });
-            if (baseWan <= to) break;
-          }
-        }
-
-        const cap = safeNum(els.cap.value);
-        const floor = safeNum(els.floor.value);
-        let note = "";
-        
-        if (floor > 0 && net < floor) { net = floor; note = "触发保底"; }
-        if (cap > 0 && net > cap) { net = cap; note = "触发封顶"; }
-
-        const vatRatio = safeNum(els.vatRate.value) / 100;
-        let gross = 0, vatAmt = 0;
-        
-        if (els.taxMode.value === 'add') {
-          vatAmt = net * vatRatio;
-          gross = net + vatAmt;
-        } else {
-          gross = net;
-          net = gross / (1 + vatRatio);
-          vatAmt = gross - net;
-        }
-
-        els.oType.innerText = els.projectType.options[els.projectType.selectedIndex].text;
-        els.oModel.innerText = els.pricingModel.options[els.pricingModel.selectedIndex].text;
-        
-        // Payer Display Text
-        if (els.payer.value === 'custom') {
-          els.oPayer.innerText = els.payerCustom.value || '自定义';
-        } else if (els.payer.value === 'buyer') {
-          els.oPayer.innerText = '采购人支付';
-        } else {
-          els.oPayer.innerText = '中标人支付';
-        }
-
-        els.oNet.innerText = fmtMoney(net);
-        els.oGross.innerText = fmtMoney(gross);
-        els.oVat.innerText = fmtMoney(vatAmt);
-        lastSnapshot = { net, gross, vat: vatAmt };
-
-        const html = rows.map(r => `
-          <tr>
-            <td>${r.label}</td>
-            <td>${isFinite(r.used)?fmtMoney(r.used):r.used}</td>
-            <td>${isFinite(r.rate)?r.rate+'%':r.rate}</td>
-            <td>${fmtMoney(r.net)}</td>
-          </tr>
-        `).join('');
-        els.breakdown.innerHTML = html + (note ? `<tr><td colspan="4" style="color:var(--primary)">${note}</td></tr>` : '');
-        
-        setNote(`说明：计费基数 ${fmtMoney(baseCNY)}元，税率 ${els.vatRate.value}%。${note ? ' ' + note : ''}`);
-        saveState();
-      }
-
-      els.projectType.addEventListener('change', () => {
-        resetTiers();
-        calculate();
-        scheduleHistory();
-      });
-      els.pricingModel.addEventListener('change', () => {
-        updateUI();
-        calculate();
-        scheduleHistory();
-      });
-      // Payer change is now handled by Chips click event
-      ['amount','amountUnit','rate','fixedFee','vatRate','taxMode','cap','floor','payerCustom','tierConfig'].forEach(id => {
-        const node = $(id);
-        if (!node) return;
-        const eventName = node.tagName === 'SELECT' ? 'change' : 'input';
-        node.addEventListener(eventName, () => {
-          calculate();
-          scheduleHistory();
-        });
-      });
-
-      $('btnReset').addEventListener('click', () => { location.reload(); });
-      $('btnPrint').addEventListener('click', () => window.print());
-
-      initSegmented();
-      resetTiers();
-      loadState();
-      updateUI();
-      calculate();
-    })();
-  </script>
-</body>
-</html>
+      const $
