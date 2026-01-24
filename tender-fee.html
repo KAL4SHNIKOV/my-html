@@ -130,6 +130,8 @@
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
     .btn-secondary:hover { background: var(--accent); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { filter: brightness(1.05); }
 
     /* 快捷选项 Chips 样式 */
     .chip-group {
@@ -390,18 +392,6 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>费用承担方</label>
-          <input type="hidden" id="payer" value="supplier">
-          <div class="chip-group" id="payerChips" style="margin-top:0; margin-bottom:8px;">
-            <div class="chip active" data-val="supplier">中标人支付</div>
-            <div class="chip" data-val="buyer">采购人支付</div>
-            <div class="chip" data-val="custom">自定义</div>
-          </div>
-          <input id="payerCustom" type="text" placeholder="输入承担方名称" style="display:none" />
-        </div>
-
-
         <details>
           <summary>高级设置（含税口径 / 封顶保底 / 分段费率）</summary>
           <div class="content">
@@ -433,7 +423,7 @@
         </details>
 
         <div class="btn-row">
-          <button class="action btn-secondary" id="btnReset">重置</button>
+          <button class="action btn-danger" id="btnReset">重置</button>
         </div>
       </section>
 
@@ -447,7 +437,6 @@
         <div class="tags">
           <div class="tag">类型: <strong id="oType">-</strong></div>
           <div class="tag">模式: <strong id="oModel">-</strong></div>
-          <div class="tag">承担: <strong id="oPayer">-</strong></div>
         </div>
 
         <div class="result-summary">
@@ -568,15 +557,13 @@
         fixedFee: $('fixedFee'),
         vatRate: $('vatRate'),
         taxMode: $('taxMode'),
-        payer: $('payer'), // 这是一个 hidden input
-        payerCustom: $('payerCustom'),
         cap: $('cap'),
         floor: $('floor'),
         tierConfig: $('tierConfig'),
         percentageWrap: $('percentageWrap'),
         fixedWrap: $('fixedWrap'),
         tierConfigWrap: $('tierConfigWrap'),
-        oType: $('oType'), oModel: $('oModel'), oPayer: $('oPayer'),
+        oType: $('oType'), oModel: $('oModel'),
         oNet: $('oNet'), oGross: $('oGross'), oVat: $('oVat'),
         breakdown: $('breakdown'), notes: $('notes')
       };
@@ -633,19 +620,6 @@
          vatChips.forEach(c => c.classList.remove('active'));
       });
 
-      // 2. 承担方 Chips
-      const payerChips = document.querySelectorAll('#payerChips .chip');
-      payerChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          payerChips.forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          els.payer.value = chip.dataset.val;
-          updateUI();
-          calculate();
-          scheduleHistory();
-        });
-      });
-
 
       function setNote(msg, isError=false){
         els.notes.innerText = msg;
@@ -674,10 +648,6 @@
         els.percentageWrap.style.display = m === 'percentage' ? 'block' : 'none';
         els.fixedWrap.style.display = m === 'fixed' ? 'block' : 'none';
         els.tierConfigWrap.style.display = m === 'tiered' ? 'block' : 'none';
-        
-        // Payer Custom Logic
-        const p = els.payer.value;
-        els.payerCustom.style.display = p === 'custom' ? 'block' : 'none';
       }
 
 
@@ -696,8 +666,6 @@
           fixedFee: els.fixedFee.value,
           vatRate: els.vatRate.value,
           taxMode: els.taxMode.value,
-          payer: els.payer.value,
-          payerCustom: els.payerCustom.value,
           cap: els.cap.value,
           floor: els.floor.value,
           tierConfig: els.tierConfig.value
@@ -711,6 +679,7 @@
           if (!raw) return;
           const s = JSON.parse(raw);
           if (!s || typeof s !== 'object') return;
+          const hasTierConfig = Boolean(s.tierConfig);
 
           if (s.projectType) els.projectType.value = s.projectType;
           if (s.pricingModel) els.pricingModel.value = s.pricingModel;
@@ -720,15 +689,16 @@
           if (s.fixedFee !== undefined) els.fixedFee.value = s.fixedFee;
           if (s.vatRate !== undefined) els.vatRate.value = s.vatRate;
           if (s.taxMode) els.taxMode.value = s.taxMode;
-          if (s.payer) els.payer.value = s.payer;
-          if (s.payerCustom !== undefined) els.payerCustom.value = s.payerCustom;
           if (s.cap !== undefined) els.cap.value = s.cap;
           if (s.floor !== undefined) els.floor.value = s.floor;
-          if (s.tierConfig) els.tierConfig.value = s.tierConfig;
+          if (hasTierConfig) {
+            els.tierConfig.value = s.tierConfig;
+          } else {
+            resetTiers();
+          }
 
           // 同步 Chips 选中态
           $$('#vatChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === String(els.vatRate.value)));
-          $$('#payerChips .chip').forEach(c => c.classList.toggle('active', c.dataset.val === String(els.payer.value)));
           syncSegmented('projectType');
           syncSegmented('amountUnit');
           syncSegmented('pricingModel');
@@ -737,6 +707,32 @@
 
       function resetTiers() {
         els.tierConfig.value = JSON.stringify(defaultTiers(els.projectType.value), null, 2);
+      }
+
+      const DEFAULT_STATE = {
+        projectType: 'engineering',
+        pricingModel: 'tiered',
+        amountUnit: 'WAN',
+        vatRate: '0',
+        taxMode: 'add'
+      };
+
+      function applyDefaults() {
+        els.projectType.value = DEFAULT_STATE.projectType;
+        els.pricingModel.value = DEFAULT_STATE.pricingModel;
+        els.amount.value = '0';
+        els.amountUnit.value = DEFAULT_STATE.amountUnit;
+        els.rate.value = '';
+        els.fixedFee.value = '';
+        els.vatRate.value = DEFAULT_STATE.vatRate;
+        els.taxMode.value = DEFAULT_STATE.taxMode;
+        els.cap.value = '';
+        els.floor.value = '';
+        resetTiers();
+        syncSegmented('projectType');
+        syncSegmented('amountUnit');
+        syncSegmented('pricingModel');
+        vatChips.forEach(c => c.classList.toggle('active', c.dataset.val === DEFAULT_STATE.vatRate));
       }
 
       function resetOutput(message) {
@@ -791,6 +787,10 @@
           return;
         }
         if (baseVal < 0) { setNote('校验失败：计费基数金额不能为负。', true); return; }
+        if (baseVal === 0) {
+          resetOutput('请输入计费基数金额后自动生成结果。');
+          return;
+        }
         const baseCNY = els.amountUnit.value === 'WAN' ? baseVal * 10000 : baseVal;
         const baseWan = baseCNY / 10000;
 
@@ -857,15 +857,6 @@
 
         els.oType.innerText = els.projectType.options[els.projectType.selectedIndex].text;
         els.oModel.innerText = els.pricingModel.options[els.pricingModel.selectedIndex].text;
-        
-        // Payer Display Text
-        if (els.payer.value === 'custom') {
-          els.oPayer.innerText = els.payerCustom.value || '自定义';
-        } else if (els.payer.value === 'buyer') {
-          els.oPayer.innerText = '采购人支付';
-        } else {
-          els.oPayer.innerText = '中标人支付';
-        }
 
         els.oNet.innerText = fmtMoney(net);
         els.oGross.innerText = fmtMoney(gross);
@@ -896,8 +887,7 @@
         calculate();
         scheduleHistory();
       });
-      // Payer change is now handled by Chips click event
-      ['amount','amountUnit','rate','fixedFee','vatRate','taxMode','cap','floor','payerCustom','tierConfig'].forEach(id => {
+      ['amount','amountUnit','rate','fixedFee','vatRate','taxMode','cap','floor','tierConfig'].forEach(id => {
         const node = $(id);
         if (!node) return;
         const eventName = node.tagName === 'SELECT' ? 'change' : 'input';
@@ -907,11 +897,28 @@
         });
       });
 
-      $('btnReset').addEventListener('click', () => { location.reload(); });
+      function resetHistory() {
+        history.length = 0;
+        lastSnapshot = null;
+        if (historyTimer) {
+          clearTimeout(historyTimer);
+          historyTimer = null;
+        }
+        const list = $('historyList');
+        if (list) list.innerText = '暂无记录';
+      }
+
+      $('btnReset').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        applyDefaults();
+        resetHistory();
+        updateUI();
+        resetOutput('请输入计费基数金额后自动生成结果。');
+      });
       $('btnPrint').addEventListener('click', () => window.print());
 
       initSegmented();
-      resetTiers();
+      applyDefaults();
       loadState();
       updateUI();
       calculate();
