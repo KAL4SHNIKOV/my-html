@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stroop 训练</title>
+  <style>
+    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+           background:var(--bg); color:var(--fg); }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 20px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:260px; }
+    h1 { font-size:18px; margin:0 0 12px; }
+    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input, select, button, textarea {
+      font: inherit; color: var(--fg);
+      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
+      padding:10px 12px; outline:none;
+    }
+    input, select { width:100%; box-sizing:border-box; }
+    button { cursor:pointer; }
+    button.primary { background:#15325b; border-color:#2a4d86; }
+    button.danger { background:#4a1d2b; border-color:#7a2a3f; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .stage { height: 320px; display:flex; align-items:center; justify-content:center; border-radius:14px;
+             border:1px dashed #2a3950; background:#0c121c; position:relative; overflow:hidden; }
+    .fix { font-size:40px; color:#cfe1ff; opacity:.9; }
+    .stim { font-size:72px; font-weight:800; letter-spacing:2px; }
+    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
+    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
+    .btns { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:12px; }
+    .colorBtn { padding:12px 10px; font-weight:700; }
+    .stats { font-size:12px; color:var(--muted); line-height:1.6; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <h1>Stroop 训练（识别字体颜色）</h1>
+        <div class="stage" id="stage" aria-live="polite">
+          <div class="fix" id="fix">按“开始”</div>
+          <div class="stim" id="stim" style="display:none;"></div>
+          <div class="hint">
+            <div id="trialInfo">—</div>
+            <div class="keys">
+              <span class="kbd">R</span><span class="kbd">G</span><span class="kbd">B</span><span class="kbd">Y</span>
+              <span class="kbd">Esc</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="colorBtn" id="btnRed">红 (R)</button>
+          <button class="colorBtn" id="btnGreen">绿 (G)</button>
+          <button class="colorBtn" id="btnBlue">蓝 (B)</button>
+          <button class="colorBtn" id="btnYellow">黄 (Y)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>参数</h2>
+
+        <label>试次数</label>
+        <input id="nTrials" type="number" min="10" max="500" step="10" value="60" />
+
+        <label>一致比例（0~1）</label>
+        <input id="congruentRatio" type="number" min="0" max="1" step="0.05" value="0.3" />
+
+        <label>超时（毫秒）</label>
+        <input id="timeoutMs" type="number" min="500" max="10000" step="100" value="2000" />
+
+        <label>固视（毫秒）</label>
+        <input id="fixMs" type="number" min="0" max="2000" step="50" value="300" />
+
+        <label>试次间隔 ITI（毫秒）</label>
+        <input id="itiMs" type="number" min="0" max="3000" step="50" value="300" />
+
+        <label>启用按钮作答</label>
+        <select id="enableButtons">
+          <option value="1" selected>启用</option>
+          <option value="0">禁用（仅键盘）</option>
+        </select>
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="primary" id="startBtn">开始</button>
+          <button class="danger" id="stopBtn" disabled>停止</button>
+          <button id="exportBtn" disabled>导出 CSV</button>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>统计</h2>
+          <div class="stats mono" id="stats">—</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>数据（最近 10 条）</h2>
+          <textarea class="mono" id="log" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const COLORS = [
+    { key: 'R', name: '红', css: '#ff4d4d' },
+    { key: 'G', name: '绿', css: '#37d67a' },
+    { key: 'B', name: '蓝', css: '#4d7dff' },
+    { key: 'Y', name: '黄', css: '#ffd54d' },
+  ];
+
+  const el = (id) => document.getElementById(id);
+
+  const stage = el('stage');
+  const fix = el('fix');
+  const stim = el('stim');
+  const trialInfo = el('trialInfo');
+
+  const startBtn = el('startBtn');
+  const stopBtn = el('stopBtn');
+  const exportBtn = el('exportBtn');
+
+  const nTrialsInput = el('nTrials');
+  const congruentRatioInput = el('congruentRatio');
+  const timeoutMsInput = el('timeoutMs');
+  const fixMsInput = el('fixMs');
+  const itiMsInput = el('itiMs');
+  const enableButtonsSel = el('enableButtons');
+
+  const statsBox = el('stats');
+  const logBox = el('log');
+
+  const btnRed = el('btnRed');
+  const btnGreen = el('btnGreen');
+  const btnBlue = el('btnBlue');
+  const btnYellow = el('btnYellow');
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function mean(nums) {
+    const v = nums.filter(x => Number.isFinite(x));
+    if (!v.length) return NaN;
+    return v.reduce((a,b)=>a+b,0) / v.length;
+  }
+
+  function pct(a, b) {
+    if (!b) return NaN;
+    return (a / b) * 100;
+  }
+
+  function nowISO() {
+    return new Date().toISOString();
+  }
+
+  function toCSV(rows) {
+    const header = [
+      'trialIndex','condition','word','inkColor','response','correct','rtMs','timeout','timestamp'
+    ];
+    const esc = (s) => {
+      const str = String(s ?? '');
+      if (/[",\n]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
+      return str;
+    };
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      lines.push(header.map(k => esc(r[k])).join(','));
+    }
+    return lines.join('\n');
+  }
+
+  let running = false;
+  let abort = false;
+
+  let trials = [];
+  let results = [];
+
+  let current = null;            // 当前试次对象
+  let tStimOn = null;            // 刺激出现时间
+  let responseWindowOpen = false;
+  let timeoutHandle = null;
+
+  function setButtonsEnabled(enabled) {
+    const en = enabled && enableButtonsSel.value === '1';
+    for (const b of [btnRed, btnGreen, btnBlue, btnYellow]) b.disabled = !en;
+  }
+
+  function renderStageFix() {
+    stim.style.display = 'none';
+    fix.style.display = 'block';
+    fix.textContent = '+';
+  }
+
+  function renderStageText(word, inkCss) {
+    fix.style.display = 'none';
+    stim.style.display = 'block';
+    stim.textContent = word;
+    stim.style.color = inkCss;
+  }
+
+  function renderStageMessage(msg) {
+    stim.style.display = 'none';
+    fix.style.display = 'block';
+    fix.textContent = msg;
+  }
+
+  function buildTrials(nTrials, congruentRatio) {
+    const nCong = Math.round(nTrials * congruentRatio);
+    const nIncong = nTrials - nCong;
+
+    const list = [];
+    for (let i = 0; i < nCong; i++) {
+      const c = COLORS[Math.floor(Math.random() * COLORS.length)];
+      list.push({
+        condition: 'congruent',
+        word: c.name,
+        ink: c, // ink color equals word
+      });
+    }
+    for (let i = 0; i < nIncong; i++) {
+      const ink = COLORS[Math.floor(Math.random() * COLORS.length)];
+      let word;
+      do {
+        word = COLORS[Math.floor(Math.random() * COLORS.length)];
+      } while (word.key === ink.key);
+      list.push({
+        condition: 'incongruent',
+        word: word.name,
+        ink: ink,
+      });
+    }
+    shuffle(list);
+    return list.map((t, idx) => ({ ...t, trialIndex: idx + 1 }));
+  }
+
+  function clearTimeoutIfAny() {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+      timeoutHandle = null;
+    }
+  }
+
+  function openResponseWindow(timeoutMs) {
+    responseWindowOpen = true;
+    tStimOn = performance.now();
+
+    clearTimeoutIfAny();
+    timeoutHandle = setTimeout(() => {
+      if (!responseWindowOpen) return;
+      handleResponse(null, true);
+    }, timeoutMs);
+  }
+
+  function closeResponseWindow() {
+    responseWindowOpen = false;
+    clearTimeoutIfAny();
+  }
+
+  function handleResponse(respKey, isTimeout=false) {
+    if (!running || !responseWindowOpen || !current) return;
+
+    closeResponseWindow();
+
+    const rt = isTimeout ? null : Math.round(performance.now() - tStimOn);
+    const inkKey = current.ink.key;
+    const correct = !isTimeout && respKey === inkKey;
+
+    const row = {
+      trialIndex: current.trialIndex,
+      condition: current.condition,
+      word: current.word,
+      inkColor: inkKey,
+      response: respKey ?? '',
+      correct: correct ? 1 : 0,
+      rtMs: rt ?? '',
+      timeout: isTimeout ? 1 : 0,
+      timestamp: nowISO(),
+    };
+
+    results.push(row);
+    updateLog();
+    updateStats();
+
+    // 进入ITI再进入下一试次
+    (async () => {
+      renderStageMessage(isTimeout ? '超时' : (correct ? '正确' : '错误'));
+      await sleep(200);
+      renderStageMessage('');
+      await sleep(Number(itiMsInput.value));
+      await nextTrial();
+    })();
+  }
+
+  function updateLog() {
+    const tail = results.slice(-10);
+    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
+  }
+
+  function updateStats() {
+    if (!results.length) { statsBox.textContent = '—'; return; }
+
+    const ok = results.filter(r => r.correct === 1).length;
+    const total = results.length;
+
+    const rtAll = results.filter(r => r.timeout === 0).map(r => Number(r.rtMs));
+    const rtCong = results.filter(r => r.timeout === 0 && r.condition === 'congruent').map(r => Number(r.rtMs));
+    const rtIncong = results.filter(r => r.timeout === 0 && r.condition === 'incongruent').map(r => Number(r.rtMs));
+
+    const mAll = mean(rtAll);
+    const mC = mean(rtCong);
+    const mI = mean(rtIncong);
+    const stroop = (Number.isFinite(mI) && Number.isFinite(mC)) ? (mI - mC) : NaN;
+
+    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
+
+    statsBox.textContent =
+`已完成: ${total}
+正确率: ${fmt(pct(ok,total))}%
+平均RT(ms): ${fmt(mAll)}
+一致 平均RT(ms): ${fmt(mC)} | 不一致 平均RT(ms): ${fmt(mI)}
+Stroop效应(ms): ${fmt(stroop)}`;
+  }
+
+  async function nextTrial() {
+    if (!running) return;
+    if (abort) return;
+
+    const idx = results.length;
+    if (idx >= trials.length) {
+      await finish();
+      return;
+    }
+
+    current = trials[idx];
+    trialInfo.textContent = `试次 ${current.trialIndex}/${trials.length} | ${current.condition === 'congruent' ? '一致' : '不一致'}`;
+
+    // 固视
+    renderStageFix();
+    await sleep(Number(fixMsInput.value));
+    if (!running || abort) return;
+
+    // 刺激
+    renderStageText(current.word, current.ink.css);
+    openResponseWindow(Number(timeoutMsInput.value));
+  }
+
+  async function start() {
+    if (running) return;
+
+    // 参数校验
+    const n = Number(nTrialsInput.value);
+    const ratio = Number(congruentRatioInput.value);
+    if (!Number.isFinite(n) || n < 10) return;
+    if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
+
+    running = true;
+    abort = false;
+    results = [];
+    trials = buildTrials(n, ratio);
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    exportBtn.disabled = true;
+    setButtonsEnabled(true);
+
+    updateLog();
+    updateStats();
+
+    renderStageMessage('准备');
+    await sleep(300);
+    await nextTrial();
+  }
+
+  async function finish() {
+    running = false;
+    abort = false;
+    closeResponseWindow();
+    current = null;
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    exportBtn.disabled = results.length === 0;
+    setButtonsEnabled(false);
+
+    renderStageMessage('完成');
+    trialInfo.textContent = '—';
+  }
+
+  function stop() {
+    if (!running) return;
+    abort = true;
+    running = false;
+    closeResponseWindow();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    exportBtn.disabled = results.length === 0;
+    setButtonsEnabled(false);
+    renderStageMessage('已停止');
+    trialInfo.textContent = '—';
+  }
+
+  function exportCSV() {
+    if (!results.length) return;
+    const csv = toCSV(results);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stroop_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // 输入映射：R/G/B/Y
+  function keyToColorKey(e) {
+    const k = String(e.key || '').toUpperCase();
+    if (['R','G','B','Y'].includes(k)) return k;
+    return null;
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Escape') { stop(); return; }
+    const k = keyToColorKey(e);
+    if (!k) return;
+    e.preventDefault();
+    handleResponse(k, false);
+  }
+
+  // 按钮点击
+  btnRed.onclick = () => handleResponse('R', false);
+  btnGreen.onclick = () => handleResponse('G', false);
+  btnBlue.onclick = () => handleResponse('B', false);
+  btnYellow.onclick = () => handleResponse('Y', false);
+
+  startBtn.onclick = start;
+  stopBtn.onclick = stop;
+  exportBtn.onclick = exportCSV;
+
+  enableButtonsSel.onchange = () => setButtonsEnabled(running);
+
+  window.addEventListener('keydown', onKeyDown);
+  setButtonsEnabled(false);
+})();
+</script>
+</body>
+</html>
