@@ -123,17 +123,15 @@
     const list = [];
     for (let i = 0; i < nTrials; i++) {
       const congruent = Math.random() < ratio;
-      const targetDir = Math.random() < 0.5 ? 'L' : 'R';
-      const flankDir = congruent ? targetDir : (targetDir === 'L' ? 'R' : 'L');
+      const targetDir = Math.random() < 0.5 ? '←' : '→';
+      const flankDir = congruent ? targetDir : (targetDir === '←' ? '→' : '←');
       list.push({ trialIndex: i + 1, congruent, targetDir, flankDir });
     }
     return list;
   }
 
   function renderStim(trial) {
-    const flank = trial.flankDir === 'L' ? '←' : '→';
-    const target = trial.targetDir === 'L' ? '←' : '→';
-    stim.textContent = `${flank}${flank}${target}${flank}${flank}`;
+    stim.textContent = `${trial.flankDir}${trial.flankDir}${trial.targetDir}${trial.flankDir}${trial.flankDir}`;
     stim.style.display = 'block';
   }
 
@@ -273,8 +271,8 @@
 
   function onKeyDown(e) {
     if (e.key === 'Escape') { stop(); return; }
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); handleResponse('L'); }
-    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') { e.preventDefault(); handleResponse('R'); }
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); handleResponse('←'); }
+    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') { e.preventDefault(); handleResponse('→'); }
   }
 
   startBtn.onclick = start;

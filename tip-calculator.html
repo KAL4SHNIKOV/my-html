@@ -43,14 +43,17 @@
     .row { display: grid; gap: 12px; }
     .row.inline { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
     .rates { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
-    .rate-btn {
+    .country-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .rate-btn,
+    .country-btn {
       border: 1px solid var(--border);
       background: #f8fafc;
       color: #0f172a;
       cursor: pointer;
       font-weight: 600;
     }
-    .rate-btn.active { border-color: var(--accent); background: #dbeafe; color: #1e3a8a; }
+    .rate-btn.active,
+    .country-btn.active { border-color: var(--accent); background: #dbeafe; color: #1e3a8a; }
     .note { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
     .summary { display: grid; gap: 10px; }
     .summary-item { display: flex; justify-content: space-between; font-size: 1rem; }
@@ -81,8 +84,8 @@
       <section class="card">
         <div class="row">
           <div>
-            <label for="country">选择国家/地区</label>
-            <select id="country"></select>
+            <label>选择国家/地区</label>
+            <div class="country-list" id="countryList"></div>
           </div>
 
           <div class="row inline">
@@ -195,7 +198,7 @@
       },
     ];
 
-    const countrySelect = document.getElementById('country');
+    const countryList = document.getElementById('countryList');
     const ratesBox = document.getElementById('rates');
     const billInput = document.getElementById('bill');
     const peopleInput = document.getElementById('people');
@@ -208,6 +211,7 @@
     const cultureTextEl = document.getElementById('cultureText');
 
     let selectedRate = null;
+    let selectedCountry = countries[0];
 
     function formatMoney(value, currency) {
       if (!Number.isFinite(value)) return '—';
@@ -219,12 +223,19 @@
     }
 
     function renderCountries() {
+      countryList.innerHTML = '';
       countries.forEach((c, idx) => {
-        const option = document.createElement('option');
-        option.value = c.code;
-        option.textContent = c.name;
-        if (idx === 0) option.selected = true;
-        countrySelect.appendChild(option);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `country-btn${idx === 0 ? ' active' : ''}`;
+        btn.textContent = c.name;
+        btn.addEventListener('click', () => {
+          selectedCountry = c;
+          document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderRates(c);
+        });
+        countryList.appendChild(btn);
       });
     }
 
@@ -252,13 +263,16 @@
     }
 
     function getActiveRate() {
-      const custom = Number(customRateInput.value);
-      if (Number.isFinite(custom) && custom >= 0) return custom;
+      const raw = customRateInput.value.trim();
+      if (raw !== '') {
+        const custom = Number(raw);
+        if (Number.isFinite(custom) && custom >= 0) return custom;
+      }
       return selectedRate ?? 0;
     }
 
     function updateSummary() {
-      const country = countries.find(c => c.code === countrySelect.value) || countries[0];
+      const country = selectedCountry || countries[0];
       const bill = Number(billInput.value);
       const people = Math.max(1, Number(peopleInput.value) || 1);
       const rate = getActiveRate() / 100;
@@ -276,10 +290,7 @@
     renderCountries();
     renderRates(countries[0]);
 
-    countrySelect.addEventListener('change', () => {
-      const country = countries.find(c => c.code === countrySelect.value) || countries[0];
-      renderRates(country);
-    });
+    // 国家按钮由 renderCountries 绑定点击事件
 
     [billInput, peopleInput, customRateInput, serviceIncludedSelect].forEach(el => {
       el.addEventListener('input', () => {
