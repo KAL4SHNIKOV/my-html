@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flanker（箭头干扰任务）</title>
+  <style>
+    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; --accent:#38bdf8; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg); }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:280px; }
+    h1 { font-size:18px; margin:0 0 12px; }
+    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input, button {
+      font: inherit; color: var(--fg);
+      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
+      padding:10px 12px; outline:none;
+    }
+    input { width:100%; box-sizing:border-box; }
+    button { cursor:pointer; }
+    button.primary { background:#15325b; border-color:#2a4d86; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .stage { height: 320px; display:flex; align-items:center; justify-content:center; border-radius:14px; border:1px dashed #2a3950; background:#0c121c; position:relative; }
+    .stim { font-size:64px; font-weight:700; letter-spacing:8px; display:none; color:var(--accent); }
+    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
+    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
+    .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <h1>Flanker（箭头干扰任务）</h1>
+        <div class="stage" id="stage" aria-live="polite">
+          <div class="stim" id="stim"></div>
+          <div class="hint">
+            <div id="trialInfo">—</div>
+            <div class="keys">
+              <span class="kbd">←</span><span class="kbd">→</span><span class="kbd">A</span><span class="kbd">L</span><span class="kbd">Esc</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>参数</h2>
+        <label>试次数</label>
+        <input id="nTrials" type="number" min="10" max="200" step="10" value="80" />
+
+        <label>一致比例（0~1）</label>
+        <input id="congruentRatio" type="number" min="0" max="1" step="0.05" value="0.5" />
+
+        <label>刺激呈现（毫秒）</label>
+        <input id="stimMs" type="number" min="200" max="3000" step="50" value="500" />
+
+        <label>间隔 ITI（毫秒）</label>
+        <input id="itiMs" type="number" min="200" max="4000" step="50" value="900" />
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="primary" id="startBtn">开始</button>
+          <button id="stopBtn" disabled>停止</button>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>统计</h2>
+          <div class="stats mono" id="stats">—</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>数据（最近 10 条）</h2>
+          <textarea class="mono" id="log" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+  const stim = el('stim');
+  const trialInfo = el('trialInfo');
+  const statsBox = el('stats');
+  const logBox = el('log');
+
+  const startBtn = el('startBtn');
+  const stopBtn = el('stopBtn');
+
+  const nTrialsInput = el('nTrials');
+  const congruentRatioInput = el('congruentRatio');
+  const stimMsInput = el('stimMs');
+  const itiMsInput = el('itiMs');
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  let running = false;
+  let abort = false;
+  let trials = [];
+  let results = [];
+  let currentIndex = 0;
+  let responseOpen = false;
+  let tStimOn = 0;
+  let resolveResponse = null;
+
+  function buildTrials(nTrials, ratio) {
+    const list = [];
+    for (let i = 0; i < nTrials; i++) {
+      const congruent = Math.random() < ratio;
+      const targetDir = Math.random() < 0.5 ? 'L' : 'R';
+      const flankDir = congruent ? targetDir : (targetDir === 'L' ? 'R' : 'L');
+      list.push({ trialIndex: i + 1, congruent, targetDir, flankDir });
+    }
+    return list;
+  }
+
+  function renderStim(trial) {
+    const flank = trial.flankDir === 'L' ? '←' : '→';
+    const target = trial.targetDir === 'L' ? '←' : '→';
+    stim.textContent = `${flank}${flank}${target}${flank}${flank}`;
+    stim.style.display = 'block';
+  }
+
+  function hideStim() {
+    stim.style.display = 'none';
+  }
+
+  function updateLog() {
+    const tail = results.slice(-10);
+    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
+  }
+
+  function mean(nums) {
+    const v = nums.filter(x => Number.isFinite(x));
+    if (!v.length) return NaN;
+    return v.reduce((a,b)=>a+b,0) / v.length;
+  }
+
+  function updateStats() {
+    if (!results.length) { statsBox.textContent = '—'; return; }
+    const ok = results.filter(r => r.correct).length;
+    const total = results.length;
+    const rt = results.filter(r => Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const rtCong = results.filter(r => r.congruent && Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const rtIncong = results.filter(r => !r.congruent && Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
+    statsBox.textContent =
+`已完成: ${total}
+正确率: ${fmt((ok / total) * 100)}%
+平均RT(ms): ${fmt(mean(rt))}
+一致RT(ms): ${fmt(mean(rtCong))} | 不一致RT(ms): ${fmt(mean(rtIncong))}`;
+  }
+
+  function openResponseWindow() {
+    responseOpen = true;
+    tStimOn = performance.now();
+    return new Promise((resolve) => { resolveResponse = resolve; });
+  }
+
+  function closeResponseWindow() {
+    responseOpen = false;
+    resolveResponse = null;
+  }
+
+  function handleResponse(dir) {
+    if (!running || !responseOpen) return;
+    const rt = Math.round(performance.now() - tStimOn);
+    const trial = trials[currentIndex];
+    const correct = dir === trial.targetDir;
+    results.push({
+      trialIndex: trial.trialIndex,
+      congruent: trial.congruent,
+      targetDir: trial.targetDir,
+      response: dir,
+      correct,
+      rtMs: rt,
+      timestamp: new Date().toISOString(),
+    });
+    closeResponseWindow();
+    if (resolveResponse) resolveResponse('responded');
+    updateLog();
+    updateStats();
+  }
+
+  async function runTrial() {
+    const trial = trials[currentIndex];
+    trialInfo.textContent = `试次 ${trial.trialIndex}/${trials.length} | ${trial.congruent ? '一致' : '不一致'}`;
+    renderStim(trial);
+    const responsePromise = openResponseWindow();
+    await sleep(Number(stimMsInput.value));
+    hideStim();
+
+    const timeoutPromise = sleep(Number(itiMsInput.value)).then(() => 'timeout');
+    const outcome = await Promise.race([responsePromise, timeoutPromise]);
+
+    if (outcome === 'timeout') {
+      results.push({
+        trialIndex: trial.trialIndex,
+        congruent: trial.congruent,
+        targetDir: trial.targetDir,
+        response: 'none',
+        correct: false,
+        rtMs: '',
+        timestamp: new Date().toISOString(),
+      });
+      updateLog();
+      updateStats();
+      closeResponseWindow();
+    }
+  }
+
+  async function start() {
+    if (running) return;
+    const nTrials = Number(nTrialsInput.value);
+    const ratio = Number(congruentRatioInput.value);
+    if (!Number.isFinite(nTrials) || nTrials < 5) return;
+    if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
+
+    running = true;
+    abort = false;
+    currentIndex = 0;
+    results = [];
+    trials = buildTrials(nTrials, ratio);
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    updateLog();
+    updateStats();
+
+    while (running && !abort && currentIndex < trials.length) {
+      await runTrial();
+      currentIndex += 1;
+    }
+
+    finish();
+  }
+
+  function finish() {
+    running = false;
+    abort = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    trialInfo.textContent = '—';
+    hideStim();
+  }
+
+  function stop() {
+    if (!running) return;
+    abort = true;
+    running = false;
+    closeResponseWindow();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    trialInfo.textContent = '已停止';
+    hideStim();
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Escape') { stop(); return; }
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); handleResponse('L'); }
+    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') { e.preventDefault(); handleResponse('R'); }
+  }
+
+  startBtn.onclick = start;
+  stopBtn.onclick = stop;
+  window.addEventListener('keydown', onKeyDown);
+})();
+</script>
+</body>
+</html>

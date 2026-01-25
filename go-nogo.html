@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Go/No-Go（视觉版）</title>
+  <style>
+    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; --go:#22c55e; --nogo:#ef4444; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg); }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:280px; }
+    h1 { font-size:18px; margin:0 0 12px; }
+    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input, select, button {
+      font: inherit; color: var(--fg);
+      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
+      padding:10px 12px; outline:none;
+    }
+    input, select { width:100%; box-sizing:border-box; }
+    button { cursor:pointer; }
+    button.primary { background:#15325b; border-color:#2a4d86; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .stage { height: 320px; display:flex; align-items:center; justify-content:center; border-radius:14px; border:1px dashed #2a3950; background:#0c121c; position:relative; }
+    .stim { width:120px; height:120px; border-radius:50%; display:none; }
+    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
+    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
+    .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <h1>Go/No-Go 视觉任务</h1>
+        <div class="stage" id="stage" aria-live="polite">
+          <div class="stim" id="stim"></div>
+          <div class="hint">
+            <div id="trialInfo">—</div>
+            <div class="keys">
+              <span class="kbd">Space</span><span class="kbd">Esc</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>参数</h2>
+        <label>试次数</label>
+        <input id="nTrials" type="number" min="10" max="200" step="10" value="60" />
+
+        <label>Go 比例（0~1）</label>
+        <input id="goRatio" type="number" min="0" max="1" step="0.05" value="0.7" />
+
+        <label>刺激呈现（毫秒）</label>
+        <input id="stimMs" type="number" min="200" max="3000" step="50" value="500" />
+
+        <label>间隔 ITI（毫秒）</label>
+        <input id="itiMs" type="number" min="200" max="4000" step="50" value="900" />
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="primary" id="startBtn">开始</button>
+          <button id="stopBtn" disabled>停止</button>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>统计</h2>
+          <div class="stats mono" id="stats">—</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>数据（最近 10 条）</h2>
+          <textarea class="mono" id="log" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+  const stim = el('stim');
+  const trialInfo = el('trialInfo');
+  const statsBox = el('stats');
+  const logBox = el('log');
+
+  const startBtn = el('startBtn');
+  const stopBtn = el('stopBtn');
+
+  const nTrialsInput = el('nTrials');
+  const goRatioInput = el('goRatio');
+  const stimMsInput = el('stimMs');
+  const itiMsInput = el('itiMs');
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  let running = false;
+  let abort = false;
+  let trials = [];
+  let results = [];
+  let currentIndex = 0;
+  let responseOpen = false;
+  let tStimOn = 0;
+  let resolveResponse = null;
+
+  function buildTrials(nTrials, ratio) {
+    const list = [];
+    for (let i = 0; i < nTrials; i++) {
+      const isGo = Math.random() < ratio;
+      list.push({ trialIndex: i + 1, isGo });
+    }
+    return list;
+  }
+
+  function renderStim(isGo) {
+    stim.style.display = 'block';
+    stim.style.background = isGo ? 'var(--go)' : 'var(--nogo)';
+  }
+
+  function hideStim() {
+    stim.style.display = 'none';
+  }
+
+  function updateLog() {
+    const tail = results.slice(-10);
+    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
+  }
+
+  function mean(nums) {
+    const v = nums.filter(x => Number.isFinite(x));
+    if (!v.length) return NaN;
+    return v.reduce((a,b)=>a+b,0) / v.length;
+  }
+
+  function updateStats() {
+    if (!results.length) { statsBox.textContent = '—'; return; }
+    const goTrials = results.filter(r => r.isGo);
+    const nogoTrials = results.filter(r => !r.isGo);
+    const hits = goTrials.filter(r => r.response === 'space').length;
+    const omissions = goTrials.filter(r => r.response === 'none').length;
+    const commissions = nogoTrials.filter(r => r.response === 'space').length;
+    const rt = goTrials.filter(r => Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
+    statsBox.textContent =
+`已完成: ${results.length}
+Go 命中率: ${fmt((hits / Math.max(1, goTrials.length)) * 100)}%
+漏报率: ${fmt((omissions / Math.max(1, goTrials.length)) * 100)}%
+误报率(No-Go): ${fmt((commissions / Math.max(1, nogoTrials.length)) * 100)}%
+平均RT(ms): ${fmt(mean(rt))}`;
+  }
+
+  function openResponseWindow() {
+    responseOpen = true;
+    tStimOn = performance.now();
+    return new Promise((resolve) => { resolveResponse = resolve; });
+  }
+
+  function closeResponseWindow() {
+    responseOpen = false;
+    resolveResponse = null;
+  }
+
+  function handleResponse() {
+    if (!running || !responseOpen) return;
+    const rt = Math.round(performance.now() - tStimOn);
+    const trial = trials[currentIndex];
+    results.push({
+      trialIndex: trial.trialIndex,
+      isGo: trial.isGo,
+      response: 'space',
+      correct: trial.isGo ? 1 : 0,
+      rtMs: rt,
+      timestamp: new Date().toISOString(),
+    });
+    closeResponseWindow();
+    if (resolveResponse) resolveResponse('responded');
+    updateLog();
+    updateStats();
+  }
+
+  async function runTrial() {
+    const trial = trials[currentIndex];
+    trialInfo.textContent = `试次 ${trial.trialIndex}/${trials.length} | ${trial.isGo ? 'Go' : 'No-Go'}`;
+    renderStim(trial.isGo);
+    const responsePromise = openResponseWindow();
+    await sleep(Number(stimMsInput.value));
+    hideStim();
+
+    const timeoutPromise = sleep(Number(itiMsInput.value)).then(() => 'timeout');
+    const outcome = await Promise.race([responsePromise, timeoutPromise]);
+
+    if (outcome === 'timeout') {
+      results.push({
+        trialIndex: trial.trialIndex,
+        isGo: trial.isGo,
+        response: 'none',
+        correct: trial.isGo ? 0 : 1,
+        rtMs: '',
+        timestamp: new Date().toISOString(),
+      });
+      updateLog();
+      updateStats();
+      closeResponseWindow();
+    }
+  }
+
+  async function start() {
+    if (running) return;
+    const nTrials = Number(nTrialsInput.value);
+    const ratio = Number(goRatioInput.value);
+    if (!Number.isFinite(nTrials) || nTrials < 5) return;
+    if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
+
+    running = true;
+    abort = false;
+    currentIndex = 0;
+    results = [];
+    trials = buildTrials(nTrials, ratio);
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    updateLog();
+    updateStats();
+
+    while (running && !abort && currentIndex < trials.length) {
+      await runTrial();
+      currentIndex += 1;
+    }
+
+    finish();
+  }
+
+  function finish() {
+    running = false;
+    abort = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    trialInfo.textContent = '—';
+    hideStim();
+  }
+
+  function stop() {
+    if (!running) return;
+    abort = true;
+    running = false;
+    closeResponseWindow();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    trialInfo.textContent = '已停止';
+    hideStim();
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Escape') { stop(); return; }
+    if (e.code === 'Space') { e.preventDefault(); handleResponse(); }
+  }
+
+  startBtn.onclick = start;
+  stopBtn.onclick = stop;
+  window.addEventListener('keydown', onKeyDown);
+})();
+</script>
+</body>
+</html>

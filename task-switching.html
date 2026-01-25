@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>任务切换（Task Switching）</title>
+  <style>
+    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; --accent:#f59e0b; --accent2:#38bdf8; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg); }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:280px; }
+    h1 { font-size:18px; margin:0 0 12px; }
+    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input, button {
+      font: inherit; color: var(--fg);
+      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
+      padding:10px 12px; outline:none;
+    }
+    input { width:100%; box-sizing:border-box; }
+    button { cursor:pointer; }
+    button.primary { background:#15325b; border-color:#2a4d86; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .stage { height: 320px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; border-radius:14px; border:1px dashed #2a3950; background:#0c121c; position:relative; }
+    .cue { font-size:16px; padding:6px 14px; border-radius:999px; border:1px solid transparent; }
+    .cue.parity { background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.6); color:var(--accent2); }
+    .cue.magnitude { background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.6); color:var(--accent); }
+    .stim { font-size:72px; font-weight:700; }
+    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
+    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
+    .legend { font-size:12px; color:var(--muted); display:grid; gap:6px; }
+    .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <h1>任务切换（Task Switching）</h1>
+        <div class="stage" id="stage" aria-live="polite">
+          <div class="cue parity" id="cue">准备</div>
+          <div class="stim" id="stim">—</div>
+          <div class="hint">
+            <div id="trialInfo">—</div>
+            <div class="keys">
+              <span class="kbd">A</span><span class="kbd">L</span><span class="kbd">Esc</span>
+            </div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:12px;">
+          <div>奇偶任务：<span style="color:var(--accent2)">蓝色提示</span>，A=奇数，L=偶数。</div>
+          <div>大小任务：<span style="color:var(--accent)">橙色提示</span>，A=小于5，L=大于5。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>参数</h2>
+        <label>试次数</label>
+        <input id="nTrials" type="number" min="10" max="200" step="10" value="80" />
+
+        <label>切换比例（0~1）</label>
+        <input id="switchRatio" type="number" min="0" max="1" step="0.05" value="0.4" />
+
+        <label>刺激呈现（毫秒）</label>
+        <input id="stimMs" type="number" min="200" max="3000" step="50" value="700" />
+
+        <label>间隔 ITI（毫秒）</label>
+        <input id="itiMs" type="number" min="200" max="4000" step="50" value="900" />
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="primary" id="startBtn">开始</button>
+          <button id="stopBtn" disabled>停止</button>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>统计</h2>
+          <div class="stats mono" id="stats">—</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <h2>数据（最近 10 条）</h2>
+          <textarea class="mono" id="log" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+  const cue = el('cue');
+  const stim = el('stim');
+  const trialInfo = el('trialInfo');
+  const statsBox = el('stats');
+  const logBox = el('log');
+
+  const startBtn = el('startBtn');
+  const stopBtn = el('stopBtn');
+
+  const nTrialsInput = el('nTrials');
+  const switchRatioInput = el('switchRatio');
+  const stimMsInput = el('stimMs');
+  const itiMsInput = el('itiMs');
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  let running = false;
+  let abort = false;
+  let trials = [];
+  let results = [];
+  let currentIndex = 0;
+  let responseOpen = false;
+  let tStimOn = 0;
+  let resolveResponse = null;
+
+  const numbers = [1,2,3,4,6,7,8,9];
+
+  function buildTrials(nTrials, switchRatio) {
+    const list = [];
+    let currentTask = Math.random() < 0.5 ? 'parity' : 'magnitude';
+    for (let i = 0; i < nTrials; i++) {
+      const shouldSwitch = i > 0 && Math.random() < switchRatio;
+      if (shouldSwitch) currentTask = currentTask === 'parity' ? 'magnitude' : 'parity';
+      const value = numbers[Math.floor(Math.random() * numbers.length)];
+      list.push({ trialIndex: i + 1, task: currentTask, value, switch: shouldSwitch ? 1 : 0 });
+    }
+    return list;
+  }
+
+  function renderTrial(trial) {
+    cue.textContent = trial.task === 'parity' ? '奇偶判断' : '大小判断';
+    cue.className = `cue ${trial.task}`;
+    stim.textContent = String(trial.value);
+  }
+
+  function clearTrial() {
+    cue.textContent = '准备';
+    cue.className = 'cue parity';
+    stim.textContent = '—';
+  }
+
+  function updateLog() {
+    const tail = results.slice(-10);
+    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
+  }
+
+  function mean(nums) {
+    const v = nums.filter(x => Number.isFinite(x));
+    if (!v.length) return NaN;
+    return v.reduce((a,b)=>a+b,0) / v.length;
+  }
+
+  function updateStats() {
+    if (!results.length) { statsBox.textContent = '—'; return; }
+    const ok = results.filter(r => r.correct).length;
+    const total = results.length;
+    const rt = results.filter(r => Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const rtSwitch = results.filter(r => r.switch === 1 && Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const rtRepeat = results.filter(r => r.switch === 0 && Number.isFinite(r.rtMs)).map(r => r.rtMs);
+    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
+    statsBox.textContent =
+`已完成: ${total}
+正确率: ${fmt((ok / total) * 100)}%
+平均RT(ms): ${fmt(mean(rt))}
+切换RT(ms): ${fmt(mean(rtSwitch))} | 重复RT(ms): ${fmt(mean(rtRepeat))}`;
+  }
+
+  function openResponseWindow() {
+    responseOpen = true;
+    tStimOn = performance.now();
+    return new Promise((resolve) => { resolveResponse = resolve; });
+  }
+
+  function closeResponseWindow() {
+    responseOpen = false;
+    resolveResponse = null;
+  }
+
+  function evaluate(trial, key) {
+    if (trial.task === 'parity') {
+      const isOdd = trial.value % 2 === 1;
+      return (key === 'A' && isOdd) || (key === 'L' && !isOdd);
+    }
+    const isSmall = trial.value < 5;
+    return (key === 'A' && isSmall) || (key === 'L' && !isSmall);
+  }
+
+  function handleResponse(key) {
+    if (!running || !responseOpen) return;
+    const rt = Math.round(performance.now() - tStimOn);
+    const trial = trials[currentIndex];
+    const correct = evaluate(trial, key);
+    results.push({
+      trialIndex: trial.trialIndex,
+      task: trial.task,
+      value: trial.value,
+      switch: trial.switch,
+      response: key,
+      correct,
+      rtMs: rt,
+      timestamp: new Date().toISOString(),
+    });
+    closeResponseWindow();
+    if (resolveResponse) resolveResponse('responded');
+    updateLog();
+    updateStats();
+  }
+
+  async function runTrial() {
+    const trial = trials[currentIndex];
+    trialInfo.textContent = `试次 ${trial.trialIndex}/${trials.length} | ${trial.switch ? '切换' : '重复'}`;
+    renderTrial(trial);
+    const responsePromise = openResponseWindow();
+    await sleep(Number(stimMsInput.value));
+    stim.textContent = '';
+
+    const timeoutPromise = sleep(Number(itiMsInput.value)).then(() => 'timeout');
+    const outcome = await Promise.race([responsePromise, timeoutPromise]);
+
+    if (outcome === 'timeout') {
+      results.push({
+        trialIndex: trial.trialIndex,
+        task: trial.task,
+        value: trial.value,
+        switch: trial.switch,
+        response: 'none',
+        correct: false,
+        rtMs: '',
+        timestamp: new Date().toISOString(),
+      });
+      updateLog();
+      updateStats();
+      closeResponseWindow();
+    }
+  }
+
+  async function start() {
+    if (running) return;
+    const nTrials = Number(nTrialsInput.value);
+    const switchRatio = Number(switchRatioInput.value);
+    if (!Number.isFinite(nTrials) || nTrials < 5) return;
+    if (!Number.isFinite(switchRatio) || switchRatio < 0 || switchRatio > 1) return;
+
+    running = true;
+    abort = false;
+    currentIndex = 0;
+    results = [];
+    trials = buildTrials(nTrials, switchRatio);
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    updateLog();
+    updateStats();
+
+    while (running && !abort && currentIndex < trials.length) {
+      await runTrial();
+      currentIndex += 1;
+    }
+
+    finish();
+  }
+
+  function finish() {
+    running = false;
+    abort = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    trialInfo.textContent = '—';
+    clearTrial();
+  }
+
+  function stop() {
+    if (!running) return;
+    abort = true;
+    running = false;
+    closeResponseWindow();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    trialInfo.textContent = '已停止';
+    clearTrial();
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Escape') { stop(); return; }
+    const k = String(e.key || '').toUpperCase();
+    if (k === 'A' || k === 'L') { e.preventDefault(); handleResponse(k); }
+  }
+
+  startBtn.onclick = start;
+  stopBtn.onclick = stop;
+  window.addEventListener('keydown', onKeyDown);
+})();
+</script>
+</body>
+</html>
