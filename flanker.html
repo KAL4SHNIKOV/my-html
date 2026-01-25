@@ -30,6 +30,9 @@
     .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
+    .usage { margin-top:14px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .usage ul { margin:6px 0 0 18px; padding:0; }
+    .usage li { margin-bottom:4px; }
   </style>
 </head>
 <body>
@@ -45,6 +48,15 @@
               <span class="kbd">←</span><span class="kbd">→</span><span class="kbd">A</span><span class="kbd">L</span><span class="kbd">Esc</span>
             </div>
           </div>
+        </div>
+        <div class="usage">
+          <h2>使用说明</h2>
+          <ul>
+            <li>点击“开始”后会出现一排箭头。</li>
+            <li>只看中间箭头方向，按 ←/→ 或 A/L 作答。</li>
+            <li>刺激消失前尽快反应，按 Esc 可停止。</li>
+            <li>统计区可比较一致/不一致条件的反应时。</li>
+          </ul>
         </div>
       </div>
 
@@ -111,17 +123,15 @@
     const list = [];
     for (let i = 0; i < nTrials; i++) {
       const congruent = Math.random() < ratio;
-      const targetDir = Math.random() < 0.5 ? 'L' : 'R';
-      const flankDir = congruent ? targetDir : (targetDir === 'L' ? 'R' : 'L');
+      const targetDir = Math.random() < 0.5 ? '←' : '→';
+      const flankDir = congruent ? targetDir : (targetDir === '←' ? '→' : '←');
       list.push({ trialIndex: i + 1, congruent, targetDir, flankDir });
     }
     return list;
   }
 
   function renderStim(trial) {
-    const flank = trial.flankDir === 'L' ? '←' : '→';
-    const target = trial.targetDir === 'L' ? '←' : '→';
-    stim.textContent = `${flank}${flank}${target}${flank}${flank}`;
+    stim.textContent = `${trial.flankDir}${trial.flankDir}${trial.targetDir}${trial.flankDir}${trial.flankDir}`;
     stim.style.display = 'block';
   }
 
@@ -261,8 +271,8 @@
 
   function onKeyDown(e) {
     if (e.key === 'Escape') { stop(); return; }
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); handleResponse('L'); }
-    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') { e.preventDefault(); handleResponse('R'); }
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); handleResponse('←'); }
+    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') { e.preventDefault(); handleResponse('→'); }
   }
 
   startBtn.onclick = start;

@@ -34,6 +34,9 @@
     .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:999px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);font-size:13px;color:var(--muted);}
     .pill b{color:var(--fg);font-weight:800;font-variant-numeric:tabular-nums;}
     .hint{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.4;}
+    .usage{margin-top:12px;font-size:13px;color:var(--muted);line-height:1.5;}
+    .usage ul{margin:6px 0 0 18px;padding:0;}
+    .usage li{margin-bottom:4px;}
 
     #mainCard{transform: scale(var(--scale));transform-origin: top center;}
 
@@ -138,6 +141,16 @@
 
       <div class="grid-wrap">
         <div id="grid" class="grid"></div>
+      </div>
+
+      <div class="usage">
+        <strong>使用说明</strong>
+        <ul>
+          <li>选择格数与内容模式，点击“开始/重开”生成新方格。</li>
+          <li>按目标提示从 1 到 N（或对应汉字/字母顺序）依次点击。</li>
+          <li>遇到卡顿可点“提示”查看下一目标，“暂停”可中止计时。</li>
+          <li>完成后查看用时与错误次数，建议同一模式练习 3 次取中位数。</li>
+        </ul>
       </div>
 
       <div class="footer">

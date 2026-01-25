@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>小费计算器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: #f5f7fb;
+      color: #0f172a;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --muted: #64748b;
+      --accent: #2563eb;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .page { max-width: 1080px; margin: 0 auto; padding: 36px 20px 60px; }
+    header { display: grid; gap: 10px; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.4rem); }
+    .subtitle { margin: 0; color: var(--muted); line-height: 1.6; }
+
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+    }
+    label { font-size: 0.9rem; color: var(--muted); display: block; margin-bottom: 6px; }
+    select, input, button {
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      width: 100%;
+    }
+    input[type="number"] { appearance: textfield; }
+    .row { display: grid; gap: 12px; }
+    .row.inline { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .rates { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+    .country-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .rate-btn,
+    .country-btn {
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: #0f172a;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .rate-btn.active,
+    .country-btn.active { border-color: var(--accent); background: #dbeafe; color: #1e3a8a; }
+    .note { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+    .summary { display: grid; gap: 10px; }
+    .summary-item { display: flex; justify-content: space-between; font-size: 1rem; }
+    .summary-item b { font-variant-numeric: tabular-nums; }
+    .pill {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .tips { display: grid; gap: 10px; }
+    .culture { margin: 0; line-height: 1.6; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>小费计算器</h1>
+      <p class="subtitle">根据不同国家的常见比例快速估算小费，同时了解当地的消费文化与注意事项。</p>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="row">
+          <div>
+            <label>选择国家/地区</label>
+            <div class="country-list" id="countryList"></div>
+          </div>
+
+          <div class="row inline">
+            <div>
+              <label for="bill">账单金额</label>
+              <input id="bill" type="number" min="0" step="0.01" placeholder="例如 150.00" />
+            </div>
+            <div>
+              <label for="people">分摊人数</label>
+              <input id="people" type="number" min="1" step="1" value="1" />
+            </div>
+          </div>
+
+          <div>
+            <label>常用小费比率</label>
+            <div class="rates" id="rates"></div>
+          </div>
+
+          <div class="row inline">
+            <div>
+              <label for="customRate">自定义比例（%）</label>
+              <input id="customRate" type="number" min="0" step="0.5" placeholder="手动输入比例" />
+            </div>
+            <div>
+              <label for="serviceIncluded">账单已含服务费</label>
+              <select id="serviceIncluded">
+                <option value="0">未包含</option>
+                <option value="1">已包含（可减少小费）</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="summary">
+            <div class="summary-item"><span>建议小费</span><b id="tipAmount">—</b></div>
+            <div class="summary-item"><span>合计金额</span><b id="totalAmount">—</b></div>
+            <div class="summary-item"><span>人均</span><b id="perPerson">—</b></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="tips">
+          <div class="pill" id="rateHint">常用区间 —</div>
+          <p class="culture" id="cultureText"></p>
+          <div class="note">
+            <strong>使用说明：</strong>
+            <ol style="margin:8px 0 0 18px; padding:0; color: var(--muted); line-height:1.6;">
+              <li>选择国家/地区后，点击推荐比例或输入自定义比例。</li>
+              <li>输入账单金额与分摊人数，自动计算小费与人均金额。</li>
+              <li>若账单已含服务费，可选择“已包含”并适当降低比例。</li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const countries = [
+      {
+        code: 'US',
+        name: '美国',
+        currency: 'USD',
+        rates: [18, 20, 22],
+        culture: '餐厅普遍期待 18%~22% 的小费，若服务出色可更高。外卖、酒吧通常也会给小费。',
+      },
+      {
+        code: 'CA',
+        name: '加拿大',
+        currency: 'CAD',
+        rates: [15, 18, 20],
+        culture: '小费文化接近美国，15% 起步较常见，酒吧与出租车也会给小费。',
+      },
+      {
+        code: 'UK',
+        name: '英国',
+        currency: 'GBP',
+        rates: [10, 12.5, 15],
+        culture: '不少餐厅已在账单中加入 service charge，若已包含可少给或不再额外加。',
+      },
+      {
+        code: 'FR',
+        name: '法国',
+        currency: 'EUR',
+        rates: [0, 5, 10],
+        culture: '服务费通常已含在账单中，可视服务质量留下零散找零或 5% 的心意。',
+      },
+      {
+        code: 'JP',
+        name: '日本',
+        currency: 'JPY',
+        rates: [0],
+        culture: '日本一般不收小费，刻意给小费可能让人尴尬，服务费多已包含。',
+      },
+      {
+        code: 'CN',
+        name: '中国大陆',
+        currency: 'CNY',
+        rates: [0],
+        culture: '小费文化不普遍，正规餐厅与服务行业多数不要求额外小费。',
+      },
+      {
+        code: 'AU',
+        name: '澳大利亚',
+        currency: 'AUD',
+        rates: [0, 5, 10],
+        culture: '小费不是必须，但高端餐厅或优秀服务可给 5%~10% 以示感谢。',
+      },
+    ];
+
+    const countryList = document.getElementById('countryList');
+    const ratesBox = document.getElementById('rates');
+    const billInput = document.getElementById('bill');
+    const peopleInput = document.getElementById('people');
+    const customRateInput = document.getElementById('customRate');
+    const serviceIncludedSelect = document.getElementById('serviceIncluded');
+    const tipAmountEl = document.getElementById('tipAmount');
+    const totalAmountEl = document.getElementById('totalAmount');
+    const perPersonEl = document.getElementById('perPerson');
+    const rateHintEl = document.getElementById('rateHint');
+    const cultureTextEl = document.getElementById('cultureText');
+
+    let selectedRate = null;
+    let selectedCountry = countries[0];
+
+    function formatMoney(value, currency) {
+      if (!Number.isFinite(value)) return '—';
+      return new Intl.NumberFormat('zh-CN', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: currency === 'JPY' ? 0 : 2,
+      }).format(value);
+    }
+
+    function renderCountries() {
+      countryList.innerHTML = '';
+      countries.forEach((c, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `country-btn${idx === 0 ? ' active' : ''}`;
+        btn.textContent = c.name;
+        btn.addEventListener('click', () => {
+          selectedCountry = c;
+          document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderRates(c);
+        });
+        countryList.appendChild(btn);
+      });
+    }
+
+    function renderRates(country) {
+      ratesBox.innerHTML = '';
+      selectedRate = country.rates[0] ?? 0;
+      customRateInput.value = '';
+      country.rates.forEach((rate, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `rate-btn${idx === 0 ? ' active' : ''}`;
+        btn.textContent = `${rate}%`;
+        btn.addEventListener('click', () => {
+          selectedRate = rate;
+          customRateInput.value = '';
+          document.querySelectorAll('.rate-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          updateSummary();
+        });
+        ratesBox.appendChild(btn);
+      });
+      rateHintEl.textContent = `常用区间 ${country.rates.join('% / ')}%`;
+      cultureTextEl.textContent = country.culture;
+      updateSummary();
+    }
+
+    function getActiveRate() {
+      const raw = customRateInput.value.trim();
+      if (raw !== '') {
+        const custom = Number(raw);
+        if (Number.isFinite(custom) && custom >= 0) return custom;
+      }
+      return selectedRate ?? 0;
+    }
+
+    function updateSummary() {
+      const country = selectedCountry || countries[0];
+      const bill = Number(billInput.value);
+      const people = Math.max(1, Number(peopleInput.value) || 1);
+      const rate = getActiveRate() / 100;
+      const serviceIncluded = serviceIncludedSelect.value === '1';
+      const baseRate = serviceIncluded ? rate * 0.5 : rate;
+      const tip = Number.isFinite(bill) ? bill * baseRate : NaN;
+      const total = Number.isFinite(bill) ? bill + tip : NaN;
+      const perPerson = Number.isFinite(total) ? total / people : NaN;
+
+      tipAmountEl.textContent = formatMoney(tip, country.currency);
+      totalAmountEl.textContent = formatMoney(total, country.currency);
+      perPersonEl.textContent = formatMoney(perPerson, country.currency);
+    }
+
+    renderCountries();
+    renderRates(countries[0]);
+
+    // 国家按钮由 renderCountries 绑定点击事件
+
+    [billInput, peopleInput, customRateInput, serviceIncludedSelect].forEach(el => {
+      el.addEventListener('input', () => {
+        if (el === customRateInput) {
+          document.querySelectorAll('.rate-btn').forEach(b => b.classList.remove('active'));
+        }
+        updateSummary();
+      });
+      el.addEventListener('change', updateSummary);
+    });
+  </script>
+</body>
+</html>
