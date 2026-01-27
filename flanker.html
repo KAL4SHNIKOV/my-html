@@ -3,282 +3,283 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Flanker（箭头干扰任务）</title>
+  <title>Flanker Task | Cognitive Lab</title>
   <style>
-    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; --accent:#38bdf8; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg); }
-    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:280px; }
-    h1 { font-size:18px; margin:0 0 12px; }
-    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
-    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    input, button {
-      font: inherit; color: var(--fg);
-      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
-      padding:10px 12px; outline:none;
+    :root {
+      --bg: #f4f5f7;
+      --panel: #ffffff;
+      --text: #334155;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #ef4444;
+      --border: #e2e8f0;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --font-sans: system-ui, -apple-system, sans-serif;
     }
-    input { width:100%; box-sizing:border-box; }
-    button { cursor:pointer; }
-    button.primary { background:#15325b; border-color:#2a4d86; }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-    .stage { height: 320px; display:flex; align-items:center; justify-content:center; border-radius:14px; border:1px dashed #2a3950; background:#0c121c; position:relative; }
-    .stim { font-size:64px; font-weight:700; letter-spacing:8px; display:none; color:var(--accent); }
-    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
-    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
-    .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
-    .usage { margin-top:14px; color:var(--muted); font-size:12px; line-height:1.6; }
-    .usage ul { margin:6px 0 0 18px; padding:0; }
-    .usage li { margin-bottom:4px; }
+    body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Layout */
+    .app-shell { display: flex; height: 100%; }
+    .sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; transition: opacity 0.3s; z-index: 2; }
+    .main-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #0f172a; flex-direction: column; }
+    
+    /* Focus Mode Classes */
+    body.running .sidebar { opacity: 0.1; pointer-events: none; filter: grayscale(1); }
+    body.running .main-stage { cursor: none; }
+
+    /* Typography */
+    h1 { font-size: 1.2rem; margin: 0 0 20px 0; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin: 24px 0 12px; }
+    
+    /* Controls */
+    .control-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; margin-bottom: 6px; font-weight: 500; }
+    input[type="number"] { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-mono); font-size: 0.9rem; box-sizing: border-box; }
+    
+    .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-stop { background: white; border: 1px solid var(--danger); color: var(--danger); margin-top: 10px; }
+    .btn-stop:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--border); color: #94a3b8; }
+    
+    /* Stimulus Area */
+    .stimulus { font-size: 5rem; font-weight: 700; color: white; letter-spacing: 12px; user-select: none; height: 100px; line-height: 100px; }
+    .fixation { font-size: 3rem; color: #64748b; position: absolute; }
+    
+    /* Instructions Overlay in Stage */
+    .stage-overlay { text-align: center; color: #94a3b8; max-width: 400px; line-height: 1.6; }
+    .key-hint { display: inline-block; padding: 4px 10px; border: 1px solid #334155; border-radius: 6px; color: #cbd5e1; font-family: var(--font-mono); font-size: 0.9rem; margin: 0 4px; }
+
+    /* Stats Dashboard in Sidebar */
+    .stat-card { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+    .stat-val { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 600; color: #0f172a; }
+    .stat-label { font-size: 0.75rem; color: #64748b; }
+    .log-area { flex: 1; margin-top: 10px; font-family: var(--font-mono); font-size: 0.75rem; background: #f1f5f9; border: 1px solid var(--border); border-radius: 6px; padding: 10px; overflow-y: auto; white-space: pre-wrap; height: 150px; color: #475569; }
+
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="row">
-      <div class="card">
-        <h1>Flanker（箭头干扰任务）</h1>
-        <div class="stage" id="stage" aria-live="polite">
-          <div class="stim" id="stim"></div>
-          <div class="hint">
-            <div id="trialInfo">—</div>
-            <div class="keys">
-              <span class="kbd">←</span><span class="kbd">→</span><span class="kbd">A</span><span class="kbd">L</span><span class="kbd">Esc</span>
-            </div>
-          </div>
-        </div>
-        <div class="usage">
-          <h2>使用说明</h2>
-          <ul>
-            <li>点击“开始”后会出现一排箭头。</li>
-            <li>只看中间箭头方向，按 ←/→ 或 A/L 作答。</li>
-            <li>刺激消失前尽快反应，按 Esc 可停止。</li>
-            <li>统计区可比较一致/不一致条件的反应时。</li>
-          </ul>
-        </div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <h1>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Flanker Task
+    </h1>
+
+    <div>
+      <div class="control-group">
+        <label>试次数 (Trials)</label>
+        <input type="number" id="nTrials" value="40" min="10" max="500">
       </div>
-
-      <div class="card">
-        <h2>参数</h2>
-        <label>试次数</label>
-        <input id="nTrials" type="number" min="10" max="200" step="10" value="80" />
-
-        <label>一致比例（0~1）</label>
-        <input id="congruentRatio" type="number" min="0" max="1" step="0.05" value="0.5" />
-
-        <label>刺激呈现（毫秒）</label>
-        <input id="stimMs" type="number" min="200" max="3000" step="50" value="500" />
-
-        <label>间隔 ITI（毫秒）</label>
-        <input id="itiMs" type="number" min="200" max="4000" step="50" value="900" />
-
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="primary" id="startBtn">开始</button>
-          <button id="stopBtn" disabled>停止</button>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>统计</h2>
-          <div class="stats mono" id="stats">—</div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>数据（最近 10 条）</h2>
-          <textarea class="mono" id="log" readonly></textarea>
-        </div>
+      <div class="control-group">
+        <label>一致比例 (Congruency 0-1)</label>
+        <input type="number" id="ratio" value="0.5" step="0.1" min="0" max="1">
       </div>
+      <div class="control-group">
+        <label>刺激呈现时间 (ms)</label>
+        <input type="number" id="stimMs" value="1000">
+      </div>
+      <div class="control-group">
+        <label>间隔时间 (ITI ms)</label>
+        <input type="number" id="itiMs" value="800">
+      </div>
+      
+      <button id="startBtn" class="btn btn-primary">开始实验 (Start)</button>
+      <button id="stopBtn" class="btn btn-stop" disabled>停止 (Stop)</button>
+      <button id="exportBtn" class="btn" style="margin-top:10px; font-size:0.8rem; text-decoration:underline;">导出CSV数据</button>
     </div>
-  </div>
+
+    <h2>实时统计</h2>
+    <div class="stat-card">
+      <div class="stat-val" id="accDisplay">0%</div>
+      <div class="stat-label">正确率 Accuracy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val"><span id="rtDisplay">0</span> <span style="font-size:0.7em; color:#999">ms</span></div>
+      <div class="stat-label">平均反应时 Mean RT</div>
+    </div>
+    
+    <h2>日志</h2>
+    <div class="log-area" id="logArea">等待开始...</div>
+  </aside>
+
+  <main class="main-stage" id="stage">
+    <div class="stage-overlay" id="introText">
+      <p style="font-size:1.1rem; color:white; margin-bottom:20px;">任务说明</p>
+      <p>屏幕将出现一排箭头，请专注于 <strong>中间</strong> 的箭头方向。</p>
+      <p>向左按 <span class="key-hint">←</span> 或 <span class="key-hint">A</span></p>
+      <p>向右按 <span class="key-hint">→</span> 或 <span class="key-hint">L</span></p>
+      <p style="margin-top:30px; font-size:0.9rem; opacity:0.7;">点击左侧“开始实验”运行</p>
+    </div>
+    
+    <div class="fixation" id="fixation" style="display:none;">+</div>
+    <div class="stimulus" id="stimulus" style="display:none;"></div>
+  </main>
+</div>
 
 <script>
-(() => {
-  const el = (id) => document.getElementById(id);
-  const stim = el('stim');
-  const trialInfo = el('trialInfo');
-  const statsBox = el('stats');
-  const logBox = el('log');
+// Logic core
+const el = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  const startBtn = el('startBtn');
-  const stopBtn = el('stopBtn');
+// State
+let running = false;
+let results = [];
+let abortController = null;
 
-  const nTrialsInput = el('nTrials');
-  const congruentRatioInput = el('congruentRatio');
-  const stimMsInput = el('stimMs');
-  const itiMsInput = el('itiMs');
+// Configs
+const getCfg = () => ({
+  n: Number(el('nTrials').value),
+  ratio: Number(el('ratio').value),
+  stimMs: Number(el('stimMs').value),
+  itiMs: Number(el('itiMs').value)
+});
 
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// UI helpers
+const setUI = (state) => {
+  el('startBtn').disabled = (state === 'running');
+  el('stopBtn').disabled = (state === 'idle');
+  el('introText').style.display = (state === 'idle') ? 'block' : 'none';
+  el('nTrials').disabled = (state === 'running');
+  document.body.classList.toggle('running', state === 'running');
+};
 
-  let running = false;
-  let abort = false;
-  let trials = [];
-  let results = [];
-  let currentIndex = 0;
-  let responseOpen = false;
-  let tStimOn = 0;
-  let resolveResponse = null;
+const updateStats = () => {
+  const valid = results.filter(r => r.resp !== 'timeout');
+  if(valid.length === 0) return;
+  
+  const acc = results.filter(r => r.acc).length / results.length;
+  const avgRt = valid.reduce((a,b) => a + b.rt, 0) / valid.length;
+  
+  el('accDisplay').textContent = (acc * 100).toFixed(1) + '%';
+  el('rtDisplay').textContent = Math.round(avgRt);
+  el('logArea').textContent = results.slice(-5).map(r => 
+    `Trial ${r.id}: ${r.cond} | ${r.acc ? 'CORRECT' : 'ERROR'} | ${r.rt}ms`
+  ).join('\n');
+};
 
-  function buildTrials(nTrials, ratio) {
-    const list = [];
-    for (let i = 0; i < nTrials; i++) {
-      const congruent = Math.random() < ratio;
-      const targetDir = Math.random() < 0.5 ? '←' : '→';
-      const flankDir = congruent ? targetDir : (targetDir === '←' ? '→' : '←');
-      list.push({ trialIndex: i + 1, congruent, targetDir, flankDir });
-    }
-    return list;
-  }
+// Trial Logic
+async function runBlock() {
+  running = true;
+  results = [];
+  setUI('running');
+  abortController = new AbortController();
+  const signal = abortController.signal;
+  
+  const cfg = getCfg();
+  // Generate Trials
+  const trialList = Array.from({length: cfg.n}, (_, i) => {
+    const isCong = Math.random() < cfg.ratio;
+    const center = Math.random() < 0.5 ? '<' : '>';
+    const flank = isCong ? center : (center === '<' ? '>' : '<');
+    const stimStr = `${flank}${flank}${center}${flank}${flank}`;
+    return { id: i+1, isCong, center, stimStr };
+  });
 
-  function renderStim(trial) {
-    stim.textContent = `${trial.flankDir}${trial.flankDir}${trial.targetDir}${trial.flankDir}${trial.flankDir}`;
-    stim.style.display = 'block';
-  }
+  try {
+    for (const trial of trialList) {
+      if(signal.aborted) break;
+      
+      // 1. Fixation
+      el('stimulus').style.display = 'none';
+      el('fixation').style.display = 'block';
+      await sleep(cfg.itiMs); // Simple ITI
+      
+      if(signal.aborted) break;
 
-  function hideStim() {
-    stim.style.display = 'none';
-  }
+      // 2. Stimulus & Response
+      el('fixation').style.display = 'none';
+      el('stimulus').textContent = trial.stimStr;
+      el('stimulus').style.display = 'block';
+      
+      const t0 = performance.now();
+      const resp = await raceResponse(cfg.stimMs, signal);
+      const t1 = performance.now();
+      
+      // 3. Record
+      const rt = Math.round(t1 - t0);
+      let acc = false;
+      let respKey = resp || 'timeout';
+      
+      if (resp) {
+        if (trial.center === '<' && (resp === 'ArrowLeft' || resp.toLowerCase() === 'a')) acc = true;
+        if (trial.center === '>' && (resp === 'ArrowRight' || resp.toLowerCase() === 'l')) acc = true;
+      }
 
-  function updateLog() {
-    const tail = results.slice(-10);
-    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
-  }
-
-  function mean(nums) {
-    const v = nums.filter(x => Number.isFinite(x));
-    if (!v.length) return NaN;
-    return v.reduce((a,b)=>a+b,0) / v.length;
-  }
-
-  function updateStats() {
-    if (!results.length) { statsBox.textContent = '—'; return; }
-    const ok = results.filter(r => r.correct).length;
-    const total = results.length;
-    const rt = results.filter(r => Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const rtCong = results.filter(r => r.congruent && Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const rtIncong = results.filter(r => !r.congruent && Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
-    statsBox.textContent =
-`已完成: ${total}
-正确率: ${fmt((ok / total) * 100)}%
-平均RT(ms): ${fmt(mean(rt))}
-一致RT(ms): ${fmt(mean(rtCong))} | 不一致RT(ms): ${fmt(mean(rtIncong))}`;
-  }
-
-  function openResponseWindow() {
-    responseOpen = true;
-    tStimOn = performance.now();
-    return new Promise((resolve) => { resolveResponse = resolve; });
-  }
-
-  function closeResponseWindow() {
-    responseOpen = false;
-    resolveResponse = null;
-  }
-
-  function handleResponse(dir) {
-    if (!running || !responseOpen) return;
-    const rt = Math.round(performance.now() - tStimOn);
-    const trial = trials[currentIndex];
-    const correct = dir === trial.targetDir;
-    results.push({
-      trialIndex: trial.trialIndex,
-      congruent: trial.congruent,
-      targetDir: trial.targetDir,
-      response: dir,
-      correct,
-      rtMs: rt,
-      timestamp: new Date().toISOString(),
-    });
-    closeResponseWindow();
-    if (resolveResponse) resolveResponse('responded');
-    updateLog();
-    updateStats();
-  }
-
-  async function runTrial() {
-    const trial = trials[currentIndex];
-    trialInfo.textContent = `试次 ${trial.trialIndex}/${trials.length} | ${trial.congruent ? '一致' : '不一致'}`;
-    renderStim(trial);
-    const responsePromise = openResponseWindow();
-    await sleep(Number(stimMsInput.value));
-    hideStim();
-
-    const timeoutPromise = sleep(Number(itiMsInput.value)).then(() => 'timeout');
-    const outcome = await Promise.race([responsePromise, timeoutPromise]);
-
-    if (outcome === 'timeout') {
       results.push({
-        trialIndex: trial.trialIndex,
-        congruent: trial.congruent,
-        targetDir: trial.targetDir,
-        response: 'none',
-        correct: false,
-        rtMs: '',
-        timestamp: new Date().toISOString(),
+        id: trial.id,
+        cond: trial.isCong ? 'Cong' : 'Incong',
+        rt: (resp === null) ? 0 : rt,
+        acc: acc,
+        resp: respKey
       });
-      updateLog();
+      
       updateStats();
-      closeResponseWindow();
+      el('stimulus').style.display = 'none';
     }
-  }
-
-  async function start() {
-    if (running) return;
-    const nTrials = Number(nTrialsInput.value);
-    const ratio = Number(congruentRatioInput.value);
-    if (!Number.isFinite(nTrials) || nTrials < 5) return;
-    if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
-
-    running = true;
-    abort = false;
-    currentIndex = 0;
-    results = [];
-    trials = buildTrials(nTrials, ratio);
-
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    updateLog();
-    updateStats();
-
-    while (running && !abort && currentIndex < trials.length) {
-      await runTrial();
-      currentIndex += 1;
-    }
-
-    finish();
-  }
-
-  function finish() {
+  } catch (e) {
+    console.log("Aborted");
+  } finally {
     running = false;
-    abort = false;
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    trialInfo.textContent = '—';
-    hideStim();
+    el('fixation').style.display = 'none';
+    el('stimulus').style.display = 'none';
+    setUI('idle');
   }
+}
 
-  function stop() {
-    if (!running) return;
-    abort = true;
-    running = false;
-    closeResponseWindow();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    trialInfo.textContent = '已停止';
-    hideStim();
-  }
+function raceResponse(duration, signal) {
+  return new Promise(resolve => {
+    let timeoutId;
+    
+    const handler = (e) => {
+      if(['ArrowLeft','ArrowRight','a','l','A','L'].includes(e.key)) {
+        cleanup();
+        resolve(e.key);
+      }
+      if(e.key === 'Escape') {
+        cleanup();
+        el('stopBtn').click(); // trigger abort
+        resolve(null);
+      }
+    };
+    
+    const cleanup = () => {
+      window.removeEventListener('keydown', handler);
+      clearTimeout(timeoutId);
+    };
 
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { stop(); return; }
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); handleResponse('←'); }
-    if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') { e.preventDefault(); handleResponse('→'); }
-  }
+    window.addEventListener('keydown', handler);
+    
+    timeoutId = setTimeout(() => {
+      cleanup();
+      resolve(null); // timeout
+    }, duration);
+    
+    // Support external abort
+    signal.addEventListener('abort', () => {
+      cleanup();
+      resolve(null);
+    });
+  });
+}
 
-  startBtn.onclick = start;
-  stopBtn.onclick = stop;
-  window.addEventListener('keydown', onKeyDown);
-})();
+// Bindings
+el('startBtn').onclick = runBlock;
+el('stopBtn').onclick = () => { if(abortController) abortController.abort(); };
+
+el('exportBtn').onclick = () => {
+  if(!results.length) return alert("暂无数据");
+  const header = "Trial,Condition,Accuracy,RT,Response\n";
+  const rows = results.map(r => `${r.id},${r.cond},${r.acc ? 1 : 0},${r.rt},${r.resp}`).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `flanker_data_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
 </script>
 </body>
 </html>
