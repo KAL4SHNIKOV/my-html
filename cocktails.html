@@ -3,437 +3,386 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>鸡尾酒选择与学习</title>
+  <title>The Cocktail Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light;
-      font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background-color: #f5f7fb;
-      color: #0f172a;
-      --card: #ffffff;
-      --border: #e2e8f0;
-      --muted: #64748b;
-      --accent: #0ea5e9;
-      --chip: #f1f5f9;
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text-main: #e0e0e0;
+      --text-muted: #a0a0a0;
+      --gold: #d4af37;
+      --gold-dim: #8a7020;
+      --border: #333;
+      --font-serif: "Playfair Display", serif;
+      --font-sans: "Inter", sans-serif;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; }
-    .page { max-width: 1180px; margin: 0 auto; padding: 36px 20px 60px; }
-    header { display: grid; gap: 12px; margin-bottom: 24px; }
-    h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.5rem); }
-    .subtitle { margin: 0; color: var(--muted); line-height: 1.6; }
 
-    .filters {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
-      margin-bottom: 20px;
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
     }
-    label { font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 6px; }
-    select, input, button {
-      font: inherit;
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 40px;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 3.5rem;
+      color: var(--gold);
+      margin: 0 0 10px 0;
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      font-weight: 300;
+    }
+
+    /* Filters */
+    .filter-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      border: 1px solid var(--border);
-      padding: 10px 12px;
-      width: 100%;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     }
-    button {
-      cursor: pointer;
-      background: #fff;
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
     }
-    .reset {
-      border-color: var(--accent);
-      color: #0c4a6e;
-      background: #e0f2fe;
+
+    .filter-group label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gold);
+      margin-bottom: 8px;
       font-weight: 600;
     }
 
-    .summary-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-    .pill { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); font-size: 0.85rem; color: var(--muted); }
-    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .card {
-      background: var(--card);
+    select, input {
+      width: 100%;
+      background: #121212;
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-      display: grid;
-      gap: 10px;
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      transition: border-color 0.2s;
     }
-    .title { font-weight: 700; font-size: 1.1rem; }
-    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tag { padding: 4px 8px; border-radius: 999px; background: #f8fafc; border: 1px solid var(--border); font-size: 0.78rem; color: #334155; }
-    .meta { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
-    .story { color: #475569; font-size: 0.9rem; line-height: 1.6; }
-    .note { margin-top: 14px; color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      padding: 8px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .btn-reset:hover {
+      background: var(--gold);
+      color: #000;
+    }
+
+    .count-pill {
+      font-family: var(--font-serif);
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    /* Grid */
+    .cocktail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+      border-color: var(--gold-dim);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 4px;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-header {
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      color: #fff;
+      margin: 0 0 4px 0;
+      line-height: 1.2;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border: 1px solid #444;
+      border-radius: 100px;
+      color: #bbb;
+      text-transform: uppercase;
+    }
+
+    .card-body {
+      flex: 1;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 12px 0 4px;
+    }
+
+    .ingredients {
+      font-size: 0.95rem;
+      color: #ddd;
+      margin-bottom: 12px;
+    }
+
+    .story {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-style: italic;
+      border-left: 2px solid var(--border);
+      padding-left: 12px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      color: #555;
+      font-size: 0.8rem;
+    }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      h1 { font-size: 2.5rem; }
+      .filter-grid { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
-  <div class="page">
+
+  <div class="container">
     <header>
-      <h1>鸡尾酒选择与学习</h1>
-      <p class="subtitle">从基酒、制作方法、杯型风格、口感结构、酒精度与经典谱系多维度筛选，并补充来源与小故事，便于学习与配方迁移。</p>
+      <h1>The Cocktail Library</h1>
+      <p class="subtitle">探索经典配方，品味调酒艺术的历史与风味结构。</p>
     </header>
 
-    <section class="filters">
-      <div>
-        <label for="baseSpirit">基酒（Base Spirit）</label>
-        <select id="baseSpirit"></select>
+    <section class="filter-panel">
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label>基酒 Base</label>
+          <select id="baseSpirit"></select>
+        </div>
+        <div class="filter-group">
+          <label>技法 Method</label>
+          <select id="method"></select>
+        </div>
+        <div class="filter-group">
+          <label>杯型 Style</label>
+          <select id="style"></select>
+        </div>
+        <div class="filter-group">
+          <label>风味 Taste</label>
+          <select id="taste"></select>
+        </div>
+        <div class="filter-group">
+          <label>浓度 Strength</label>
+          <select id="strength"></select>
+        </div>
+        <div class="filter-group">
+          <label>家族 Family</label>
+          <select id="family"></select>
+        </div>
+        <div class="filter-group" style="grid-column: 1 / -1;">
+          <label>搜索 Search</label>
+          <input id="search" type="search" placeholder="查找名称、原料或历史关键词..." />
+        </div>
       </div>
-      <div>
-        <label for="method">制作方法（Build/Shaken/Stirred）</label>
-        <select id="method"></select>
-      </div>
-      <div>
-        <label for="style">杯型与风格（Serving Style）</label>
-        <select id="style"></select>
-      </div>
-      <div>
-        <label for="taste">口感结构（Taste Profile）</label>
-        <select id="taste"></select>
-      </div>
-      <div>
-        <label for="strength">酒精度/稀释强度（ABV/Strength）</label>
-        <select id="strength"></select>
-      </div>
-      <div>
-        <label for="family">经典谱系/家族（Classic Families）</label>
-        <select id="family"></select>
-      </div>
-      <div>
-        <label for="search">名称搜索</label>
-        <input id="search" type="search" placeholder="输入鸡尾酒名称或关键词" />
-      </div>
-      <div>
-        <label>&nbsp;</label>
-        <button class="reset" id="resetFilters">重置筛选</button>
+      <div class="actions">
+        <span class="count-pill" id="resultCount">Loading collection...</span>
+        <button class="btn-reset" id="resetFilters">重置筛选 Reset</button>
       </div>
     </section>
 
-    <div class="summary-bar">
-      <span class="pill" id="resultCount">共 0 款</span>
-      <span class="pill">提示：选中任意条件即可组合筛选。</span>
-    </div>
+    <div class="cocktail-grid" id="cocktailGrid">
+      </div>
 
-    <section class="grid" id="cocktailGrid"></section>
-
-    <p class="note">饮酒需适量，开车/孕期/服药期间请避免饮酒。配方为学习版，实际调酒可根据口味微调。</p>
+    <footer>
+      <p>饮酒需适量，未成年人禁止饮酒。配方仅供学习。</p>
+    </footer>
   </div>
 
   <script>
     const cocktails = [
-      {
-        name: '伏特加红牛 Vodka Red Bull',
-        baseSpirit: '伏特加',
-        method: 'Build',
-        style: 'Highball',
-        taste: '甜感/刺激',
-        strength: '高',
-        family: 'Highball',
-        ingredients: '伏特加、红牛、冰块（可加柠檬角）',
-        story: '90 年代能量饮料风潮让这款简单组合在夜店流行。',
-      },
-      {
-        name: '自由古巴 Cuba Libre',
-        baseSpirit: '朗姆酒',
-        method: 'Build',
-        style: 'Highball',
-        taste: '甜感/柑橘',
-        strength: '中',
-        family: 'Highball',
-        ingredients: '白朗姆酒、可乐、青柠汁、冰块',
-        story: '据传诞生于 20 世纪初古巴，象征“自由”。',
-      },
-      {
-        name: '杰克可乐 Jack and Coke',
-        baseSpirit: '威士忌',
-        method: 'Build',
-        style: 'Highball',
-        taste: '甜感/木质',
-        strength: '中',
-        family: 'Highball',
-        ingredients: '杰克丹尼田纳西威士忌、可乐、冰块',
-        story: '美式经典调饮，适合入门尝试。',
-      },
-      {
-        name: '波旁可乐 Bourbon & Cola',
-        baseSpirit: '波旁威士忌',
-        method: 'Build',
-        style: 'Highball',
-        taste: '甜感/香草',
-        strength: '中',
-        family: 'Highball',
-        ingredients: '波旁威士忌、可乐、柠檬片、冰块',
-        story: '波旁自带香草和焦糖香，和可乐很搭。',
-      },
-      {
-        name: '甜味马提尼 Sweet Martini',
-        baseSpirit: '金酒',
-        method: 'Stirred',
-        style: 'Coupe',
-        taste: '甜感/草本',
-        strength: '高',
-        family: 'Martini',
-        ingredients: '金酒、甜味美思、樱桃装饰',
-        story: '在干马提尼流行前，甜味版本更常见。',
-      },
-      {
-        name: '威士忌 Highball',
-        baseSpirit: '威士忌',
-        method: 'Build',
-        style: 'Highball',
-        taste: '清爽',
-        strength: '低',
-        family: 'Highball',
-        ingredients: '威士忌、苏打水、冰块、柠檬皮',
-        story: '日式 Highball 热潮让它再次走红。',
-      },
-      {
-        name: '金汤力 Gin & Tonic',
-        baseSpirit: '金酒',
-        method: 'Build',
-        style: 'Highball',
-        taste: '苦感/柑橘',
-        strength: '中',
-        family: 'Highball',
-        ingredients: '金酒、汤力水、柠檬或青柠',
-        story: '起源于英军防疟需求，奎宁带来苦味。',
-      },
-      {
-        name: '金菲士 Gin Fizz',
-        baseSpirit: '金酒',
-        method: 'Shaken',
-        style: 'Collins',
-        taste: '酸甜',
-        strength: '中',
-        family: 'Fizz',
-        ingredients: '金酒、柠檬汁、糖浆、苏打水、冰块',
-        story: 'Fizz 家族强调气泡与清爽口感。',
-      },
-      {
-        name: '尼格罗尼 Negroni',
-        baseSpirit: '金酒',
-        method: 'Stirred',
-        style: 'Rocks',
-        taste: '苦感/草本',
-        strength: '高',
-        family: 'Negroni',
-        ingredients: '金酒、金巴利、甜味美思、橙皮',
-        story: '据说由意大利内格罗尼伯爵改造 Americano 而来。',
-      },
-      {
-        name: '莫吉托 Mojito',
-        baseSpirit: '朗姆酒',
-        method: 'Build',
-        style: 'Highball',
-        taste: '清爽/薄荷',
-        strength: '低',
-        family: 'Highball',
-        ingredients: '白朗姆酒、青柠、薄荷、糖浆、苏打水、碎冰',
-        story: '古巴经典，常与海明威联系在一起。',
-      },
-      {
-        name: '龙舌兰 Shot Ritual',
-        baseSpirit: '龙舌兰',
-        method: 'Shot',
-        style: 'Shot',
-        taste: '辛辣',
-        strength: '高',
-        family: 'Shot',
-        ingredients: '龙舌兰、盐、柠檬角',
-        story: '盐—酒—柠檬的仪式感来自墨西哥饮酒文化。',
-      },
-      {
-        name: '玛格丽特 Margarita',
-        baseSpirit: '龙舌兰',
-        method: 'Shaken',
-        style: 'Coupe',
-        taste: '酸甜',
-        strength: '中',
-        family: 'Sour',
-        ingredients: '龙舌兰、橙味力娇酒、青柠汁、杯口盐',
-        story: '经典 Sour 变体，盐边提升风味层次。',
-      },
-      {
-        name: '龙舌兰日出 Tequila Sunrise',
-        baseSpirit: '龙舌兰',
-        method: 'Build',
-        style: 'Highball',
-        taste: '果味',
-        strength: '中',
-        family: 'Highball',
-        ingredients: '龙舌兰、橙汁、石榴糖浆、冰块',
-        story: '1970 年代因摇滚乐队带火，色泽像日出。',
-      },
-      {
-        name: '长岛冰茶 Long Island Iced Tea',
-        baseSpirit: '混合基酒',
-        method: 'Build',
-        style: 'Highball',
-        taste: '甜感/柑橘',
-        strength: '高',
-        family: 'Highball',
-        ingredients: '伏特加、朗姆、金酒、龙舌兰、橙味力娇酒、柠檬汁、糖浆、可乐',
-        story: '酒体极强却用可乐“伪装”，容易被低估。',
-      },
-      {
-        name: '吹管之乐 Blow Job',
-        baseSpirit: '利口酒',
-        method: 'Layered',
-        style: 'Shot',
-        taste: '奶油/甜感',
-        strength: '中',
-        family: 'Shooter',
-        ingredients: '咖啡力娇酒、百利甜酒、鲜奶油',
-        story: '80 年代流行的趣味分层 shot。',
-      },
-      {
-        name: '僵尸 Zombie',
-        baseSpirit: '朗姆酒',
-        method: 'Shaken',
-        style: 'Tiki',
-        taste: '热带/香料',
-        strength: '高',
-        family: 'Tiki',
-        ingredients: '多款朗姆、柑橘利口酒、菠萝汁、青柠汁、石榴糖浆、苦艾酒',
-        story: 'Donn Beach 在 1930 年代打造的 Tiki 标志。',
-      },
-      {
-        name: '晨勃菲兹 Morning Glory Fizz',
-        baseSpirit: '苏格兰威士忌',
-        method: 'Shaken',
-        style: 'Collins',
-        taste: '酸甜/草本',
-        strength: '中',
-        family: 'Fizz',
-        ingredients: '苏格兰威士忌、苦艾酒、蛋清、柠檬汁、苏打水',
-        story: '19 世纪的经典 Fizz 变体，口感柔滑。',
-      },
-      {
-        name: '午后之死 Death in the Afternoon',
-        baseSpirit: '香槟',
-        method: 'Build',
-        style: 'Flute',
-        taste: '草本/干爽',
-        strength: '中',
-        family: 'Champagne Cocktail',
-        ingredients: '香槟、苦艾酒',
-        story: '海明威提出的配方，名字来自他的小说。',
-      },
-      {
-        name: 'Old Fashioned',
-        baseSpirit: '波旁威士忌',
-        method: 'Stirred',
-        style: 'Rocks',
-        taste: '苦甜/木质',
-        strength: '高',
-        family: 'Old Fashioned',
-        ingredients: '波旁威士忌、糖、苦精、橙皮',
-        story: '最经典的威士忌调酒谱系之一。',
-      },
-      {
-        name: '经典 Daiquiri',
-        baseSpirit: '朗姆酒',
-        method: 'Shaken',
-        style: 'Coupe',
-        taste: '酸甜',
-        strength: '中',
-        family: 'Sour',
-        ingredients: '白朗姆酒、青柠汁、糖浆',
-        story: '古巴矿区工人把朗姆和青柠结合。',
-      },
+      { name: 'Vodka Red Bull', baseSpirit: '伏特加', method: 'Build', style: 'Highball', taste: '甜感/刺激', strength: '高', family: 'Highball', ingredients: '伏特加, 红牛, 冰块', story: '90年代能量饮料风潮的产物，简单粗暴的夜店恩物。' },
+      { name: 'Cuba Libre', baseSpirit: '朗姆酒', method: 'Build', style: 'Highball', taste: '甜感/柑橘', strength: '中', family: 'Highball', ingredients: '白朗姆酒, 可乐, 青柠汁', story: '1900年左右，庆祝古巴独立运动中喊出的“自由古巴”口号。' },
+      { name: 'Jack and Coke', baseSpirit: '威士忌', method: 'Build', style: 'Highball', taste: '甜感/木质', strength: '中', family: 'Highball', ingredients: '杰克丹尼, 可乐, 冰块', story: '美式反叛精神的液态体现，简单却经典的组合。' },
+      { name: 'Bourbon & Cola', baseSpirit: '波旁威士忌', method: 'Build', style: 'Highball', taste: '甜感/香草', strength: '中', family: 'Highball', ingredients: '波旁威士忌, 可乐, 柠檬片', story: '波旁桶陈带来的香草味与可乐完美契合。' },
+      { name: 'Sweet Martini', baseSpirit: '金酒', method: 'Stirred', style: 'Coupe', taste: '甜感/草本', strength: '高', family: 'Martini', ingredients: '金酒, 甜味美思, 樱桃', story: '在干马提尼统治世界之前，这是绅士们的首选。' },
+      { name: 'Whisky Highball', baseSpirit: '威士忌', method: 'Build', style: 'Highball', taste: '清爽', strength: '低', family: 'Highball', ingredients: '威士忌, 苏打水, 柠檬皮', story: '日式匠心让这款简单的气泡饮品重获新生。' },
+      { name: 'Gin & Tonic', baseSpirit: '金酒', method: 'Build', style: 'Highball', taste: '苦感/柑橘', strength: '中', family: 'Highball', ingredients: '金酒, 汤力水, 青柠', story: '源于英军抗疟疾的奎宁水，最完美的开胃酒之一。' },
+      { name: 'Gin Fizz', baseSpirit: '金酒', method: 'Shaken', style: 'Collins', taste: '酸甜', strength: '中', family: 'Fizz', ingredients: '金酒, 柠檬汁, 糖浆, 苏打水', story: '新奥尔良的经典，摇荡出细腻泡沫是其灵魂。' },
+      { name: 'Negroni', baseSpirit: '金酒', method: 'Stirred', style: 'Rocks', taste: '苦感/草本', strength: '高', family: 'Negroni', ingredients: '金酒, 金巴利, 甜味美思', story: '1919年佛罗伦萨，内格罗尼伯爵要求把苏打水换成金酒。' },
+      { name: 'Mojito', baseSpirit: '朗姆酒', method: 'Build', style: 'Highball', taste: '清爽/薄荷', strength: '低', family: 'Highball', ingredients: '白朗姆, 青柠, 薄荷, 糖, 苏打', story: '海明威在哈瓦那留下的足迹，夏日的代名词。' },
+      { name: 'Tequila Shot', baseSpirit: '龙舌兰', method: 'Shot', style: 'Shot', taste: '辛辣', strength: '高', family: 'Shot', ingredients: '龙舌兰, 盐, 柠檬角', story: '舔盐、一口闷、咬柠檬，充满仪式感的墨西哥风情。' },
+      { name: 'Margarita', baseSpirit: '龙舌兰', method: 'Shaken', style: 'Coupe', taste: '酸甜', strength: '中', family: 'Sour', ingredients: '龙舌兰, 橙酒, 青柠汁, 盐边', story: '关于那个叫玛格丽特的女孩的故事有太多版本，但味道无可挑剔。' },
+      { name: 'Tequila Sunrise', baseSpirit: '龙舌兰', method: 'Build', style: 'Highball', taste: '果味', strength: '中', family: 'Highball', ingredients: '龙舌兰, 橙汁, 红石榴糖浆', story: '70年代滚石乐队巡演的最爱，杯中即是日出。' },
+      { name: 'Long Island Iced Tea', baseSpirit: '混合基酒', method: 'Build', style: 'Highball', taste: '甜感/柑橘', strength: '高', family: 'Highball', ingredients: '五大基酒, 柠檬汁, 可乐', story: '禁酒令时期的伪装？不，它诞生于70年代的长岛，以此买醉。' },
+      { name: 'B-52 / Layered Shot', baseSpirit: '利口酒', method: 'Layered', style: 'Shot', taste: '奶油/甜感', strength: '中', family: 'Shooter', ingredients: '咖啡酒, 百利甜, 橙酒', story: '利用密度分层，视觉效果满分的派对宠儿。' },
+      { name: 'Zombie', baseSpirit: '朗姆酒', method: 'Shaken', style: 'Tiki', taste: '热带/香料', strength: '高', family: 'Tiki', ingredients: '多种朗姆, 果汁, 香料, 苦艾酒', story: 'Donn Beach的杰作，这酒太强，两杯之后你就像个僵尸。' },
+      { name: 'Morning Glory Fizz', baseSpirit: '苏格兰威士忌', method: 'Shaken', style: 'Collins', taste: '酸甜/草本', strength: '中', family: 'Fizz', ingredients: '苏威, 苦艾酒, 蛋清, 柠檬, 苏打', story: '维多利亚时代的“回魂酒”，用于缓解宿醉。' },
+      { name: 'Death in the Afternoon', baseSpirit: '香槟', method: 'Build', style: 'Flute', taste: '草本/干爽', strength: '中', family: 'Champagne', ingredients: '香槟, 苦艾酒', story: '海明威建议：喝三到五杯，以此慢慢看尽午后时光。' },
+      { name: 'Old Fashioned', baseSpirit: '波旁威士忌', method: 'Stirred', style: 'Rocks', taste: '苦甜/木质', strength: '高', family: 'Old Fashioned', ingredients: '波旁, 方糖, 苦精, 橙皮', story: '鸡尾酒定义的活化石：烈酒、糖、水、苦精。' },
+      { name: 'Daiquiri', baseSpirit: '朗姆酒', method: 'Shaken', style: 'Coupe', taste: '酸甜', strength: '中', family: 'Sour', ingredients: '白朗姆, 青柠汁, 糖浆', story: '酸与甜的完美平衡测试，调酒师的基本功试金石。' },
     ];
 
-    const selectIds = ['baseSpirit', 'method', 'style', 'taste', 'strength', 'family'];
-    const selects = {};
-    selectIds.forEach(id => { selects[id] = document.getElementById(id); });
-    const searchInput = document.getElementById('search');
-    const resetBtn = document.getElementById('resetFilters');
+    // DOM Elements
     const grid = document.getElementById('cocktailGrid');
     const countEl = document.getElementById('resultCount');
+    const resetBtn = document.getElementById('resetFilters');
+    const searchInput = document.getElementById('search');
+    const selectIds = ['baseSpirit', 'method', 'style', 'taste', 'strength', 'family'];
+    const selects = {};
+    selectIds.forEach(id => selects[id] = document.getElementById(id));
 
-    function uniqueValues(key) {
-      return Array.from(new Set(cocktails.map(c => c[key]))).sort();
-    }
-
-    function buildSelect(select, values) {
-      select.innerHTML = '';
-      const all = document.createElement('option');
-      all.value = 'all';
-      all.textContent = '全部';
-      select.appendChild(all);
-      values.forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        select.appendChild(opt);
-      });
-      select.value = 'all';
-    }
-
-    function renderFilters() {
-      buildSelect(selects.baseSpirit, uniqueValues('baseSpirit'));
-      buildSelect(selects.method, uniqueValues('method'));
-      buildSelect(selects.style, uniqueValues('style'));
-      buildSelect(selects.taste, uniqueValues('taste'));
-      buildSelect(selects.strength, uniqueValues('strength'));
-      buildSelect(selects.family, uniqueValues('family'));
-    }
-
-    function matchesFilter(cocktail) {
-      const term = searchInput.value.trim().toLowerCase();
-      if (term && !(`${cocktail.name} ${cocktail.ingredients} ${cocktail.story}`.toLowerCase().includes(term))) {
-        return false;
-      }
-      return Object.entries(selects).every(([key, select]) => {
-        const val = select.value;
-        return val === 'all' || cocktail[key] === val;
+    // Utilities
+    const uniqueValues = (key) => [...new Set(cocktails.map(c => c[key]))].sort();
+    
+    // Init Filters
+    function initFilters() {
+      selectIds.forEach(id => {
+        const vals = uniqueValues(id);
+        const sel = selects[id];
+        sel.innerHTML = `<option value="all">所有 / All</option>` + 
+          vals.map(v => `<option value="${v}">${v}</option>`).join('');
       });
     }
 
-    function renderCards() {
-      const filtered = cocktails.filter(matchesFilter);
-      grid.innerHTML = '';
-      filtered.forEach(cocktail => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <div class="title">${cocktail.name}</div>
-          <div class="tags">
-            <span class="tag">${cocktail.baseSpirit}</span>
-            <span class="tag">${cocktail.method}</span>
-            <span class="tag">${cocktail.style}</span>
-            <span class="tag">${cocktail.taste}</span>
-            <span class="tag">${cocktail.strength}</span>
-            <span class="tag">${cocktail.family}</span>
+    // Logic
+    function matches(c) {
+      const term = searchInput.value.toLowerCase();
+      const textMatch = !term || [c.name, c.ingredients, c.story].some(t => t.toLowerCase().includes(term));
+      const filterMatch = selectIds.every(id => {
+        return selects[id].value === 'all' || selects[id].value === c[id];
+      });
+      return textMatch && filterMatch;
+    }
+
+    function render() {
+      const filtered = cocktails.filter(matches);
+      grid.innerHTML = filtered.map(c => `
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">${c.name}</h3>
+            <div class="card-tags">
+              <span class="tag" style="border-color: var(--gold-dim); color: var(--gold);">${c.baseSpirit}</span>
+              <span class="tag">${c.taste}</span>
+              <span class="tag">${c.style}</span>
+            </div>
           </div>
-          <div class="meta"><strong>配方：</strong>${cocktail.ingredients}</div>
-          <div class="story">${cocktail.story}</div>
-        `;
-        grid.appendChild(card);
-      });
-      countEl.textContent = `共 ${filtered.length} 款`;
+          <div class="card-body">
+            <div class="section-title">The Mix</div>
+            <div class="ingredients">${c.ingredients}</div>
+            <div class="section-title">The Story</div>
+            <div class="story">"${c.story}"</div>
+          </div>
+        </div>
+      `).join('');
+      
+      countEl.textContent = `Found ${filtered.length} cocktails`;
     }
 
-    function resetFilters() {
-      selectIds.forEach(id => { selects[id].value = 'all'; });
+    // Events
+    selectIds.forEach(id => selects[id].addEventListener('change', render));
+    searchInput.addEventListener('input', render);
+    resetBtn.addEventListener('click', () => {
+      selectIds.forEach(id => selects[id].value = 'all');
       searchInput.value = '';
-      renderCards();
-    }
-
-    renderFilters();
-    renderCards();
-
-    selectIds.forEach(id => {
-      selects[id].addEventListener('change', renderCards);
+      render();
     });
-    searchInput.addEventListener('input', renderCards);
-    resetBtn.addEventListener('click', resetFilters);
+
+    // Boot
+    initFilters();
+    render();
   </script>
 </body>
 </html>
