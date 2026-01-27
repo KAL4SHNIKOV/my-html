@@ -3,278 +3,276 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Go/No-Go（视觉版）</title>
+  <title>Go/No-Go Task | Cognitive Lab</title>
   <style>
-    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; --go:#22c55e; --nogo:#ef4444; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg); }
-    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:280px; }
-    h1 { font-size:18px; margin:0 0 12px; }
-    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
-    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    input, select, button {
-      font: inherit; color: var(--fg);
-      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
-      padding:10px 12px; outline:none;
+    :root {
+      --bg: #111827;
+      --panel: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --go-color: #34d399; /* Green */
+      --nogo-color: #3b82f6; /* Blue - often used instead of red to avoid stop-sign bias, but config allows change */
+      --border: #374151;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+      --font-sans: system-ui, -apple-system, sans-serif;
     }
-    input, select { width:100%; box-sizing:border-box; }
-    button { cursor:pointer; }
-    button.primary { background:#15325b; border-color:#2a4d86; }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-    .stage { height: 320px; display:flex; align-items:center; justify-content:center; border-radius:14px; border:1px dashed #2a3950; background:#0c121c; position:relative; }
-    .stim { width:120px; height:120px; border-radius:50%; display:none; }
-    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
-    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
-    .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
-    .usage { margin-top:14px; color:var(--muted); font-size:12px; line-height:1.6; }
-    .usage ul { margin:6px 0 0 18px; padding:0; }
-    .usage li { margin-bottom:4px; }
+    body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .app-shell { display: flex; height: 100%; }
+    .sidebar { width: 320px; background: var(--panel); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; z-index: 10; transition: transform 0.3s; }
+    .main-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; flex-direction: column; }
+    
+    /* When running, dim sidebar */
+    body.running .sidebar { filter: brightness(0.4); pointer-events: none; }
+    body.running .main-stage { cursor: none; }
+
+    h1 { font-size: 1.1rem; margin: 0 0 24px 0; color: #fff; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+    .badge { background: #374151; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: #9ca3af; }
+    
+    /* Form */
+    .field { margin-bottom: 16px; }
+    label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+    input { background: #111827; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; font-family: var(--font-mono); }
+    
+    button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .btn-start { background: var(--go-color); color: #064e3b; }
+    .btn-start:hover { filter: brightness(1.1); }
+    .btn-stop { background: #ef4444; color: white; opacity: 0.5; }
+    .btn-stop:not(:disabled) { opacity: 1; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+    .stat-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; text-align: center; }
+    .stat-val { font-size: 1.2rem; font-weight: 700; font-family: var(--font-mono); }
+    .stat-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .alert-val { color: #f87171; } /* For False Alarms */
+
+    /* Stage Elements */
+    .stimulus { width: 150px; height: 150px; border-radius: 50%; display: none; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+    .feedback-icon { position: absolute; font-size: 2rem; margin-top: 200px; opacity: 0.7; }
+    .fixation { color: #4b5563; font-size: 40px; }
+
+    .instructions { text-align: center; color: var(--muted); max-width: 400px; line-height: 1.7; }
+    .key-cap { border: 1px solid #4b5563; padding: 2px 8px; border-radius: 4px; color: #e5e7eb; font-size: 0.9em; }
+
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="row">
-      <div class="card">
-        <h1>Go/No-Go 视觉任务</h1>
-        <div class="stage" id="stage" aria-live="polite">
-          <div class="stim" id="stim"></div>
-          <div class="hint">
-            <div id="trialInfo">—</div>
-            <div class="keys">
-              <span class="kbd">Space</span><span class="kbd">Esc</span>
-            </div>
-          </div>
-        </div>
-        <div class="usage">
-          <h2>使用说明</h2>
-          <ul>
-            <li>设置试次数与 Go 比例后点击“开始”。</li>
-            <li>看到绿色圆点时按空格（Go），红色圆点时不要按。</li>
-            <li>按 Esc 或“停止”结束，查看命中率与误报率。</li>
-            <li>建议保持节奏，优先保证正确率。</li>
-          </ul>
-        </div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <h1>Go/No-Go <span class="badge">V2.0</span></h1>
+    
+    <div class="field">
+      <label>Trial Count</label>
+      <input type="number" id="nTrials" value="50">
+    </div>
+    <div class="field">
+      <label>Go Ratio (0-1)</label>
+      <input type="number" id="goRatio" value="0.75" step="0.05">
+    </div>
+    <div class="field">
+      <label>Duration (ms)</label>
+      <input type="number" id="stimMs" value="600">
+    </div>
+
+    <button id="startBtn" class="btn-start">START TASK</button>
+    <button id="stopBtn" class="btn-stop" disabled>ABORT</button>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="hitRate">0%</div>
+        <div class="stat-lbl">Go Hits</div>
       </div>
-
-      <div class="card">
-        <h2>参数</h2>
-        <label>试次数</label>
-        <input id="nTrials" type="number" min="10" max="200" step="10" value="60" />
-
-        <label>Go 比例（0~1）</label>
-        <input id="goRatio" type="number" min="0" max="1" step="0.05" value="0.7" />
-
-        <label>刺激呈现（毫秒）</label>
-        <input id="stimMs" type="number" min="200" max="3000" step="50" value="500" />
-
-        <label>间隔 ITI（毫秒）</label>
-        <input id="itiMs" type="number" min="200" max="4000" step="50" value="900" />
-
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="primary" id="startBtn">开始</button>
-          <button id="stopBtn" disabled>停止</button>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>统计</h2>
-          <div class="stats mono" id="stats">—</div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>数据（最近 10 条）</h2>
-          <textarea class="mono" id="log" readonly></textarea>
-        </div>
+      <div class="stat-box">
+        <div class="stat-val alert-val" id="faRate">0%</div>
+        <div class="stat-lbl">False Alarms</div>
+      </div>
+      <div class="stat-box" style="grid-column: 1 / -1">
+        <div class="stat-val" id="avgRt">0 ms</div>
+        <div class="stat-lbl">Mean Reaction Time</div>
       </div>
     </div>
-  </div>
+    
+    <div style="margin-top:auto; font-size:0.75rem; color:#666; text-align:center;">
+      Press <a href="#" style="color:#888;" id="dlCsv">Download CSV</a> after run
+    </div>
+  </aside>
+
+  <main class="main-stage">
+    <div class="instructions" id="instructions">
+      <p style="font-size:1.2rem; color:white;">Ready?</p>
+      <p><span style="color:var(--go-color); font-weight:bold;">Green Circle</span> = Press <span class="key-cap">Space</span> (Go)</p>
+      <p><span style="color:var(--nogo-color); font-weight:bold;">Blue Circle</span> = Do Nothing (No-Go)</p>
+      <p style="margin-top:20px; font-size:0.9rem;">Speed and accuracy are both important.</p>
+    </div>
+
+    <div class="fixation" id="fixation" style="display:none;">+</div>
+    <div class="stimulus" id="stimulus"></div>
+    <div class="feedback-icon" id="feedback"></div>
+  </main>
+</div>
 
 <script>
-(() => {
-  const el = (id) => document.getElementById(id);
-  const stim = el('stim');
-  const trialInfo = el('trialInfo');
-  const statsBox = el('stats');
-  const logBox = el('log');
+  const el = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  const startBtn = el('startBtn');
-  const stopBtn = el('stopBtn');
+  let state = {
+    running: false,
+    results: [],
+    controller: null
+  };
 
-  const nTrialsInput = el('nTrials');
-  const goRatioInput = el('goRatio');
-  const stimMsInput = el('stimMs');
-  const itiMsInput = el('itiMs');
+  // UI Updates
+  const updateUI = () => {
+    if (state.results.length === 0) return;
+    
+    const goTrials = state.results.filter(r => r.isGo);
+    const nogoTrials = state.results.filter(r => !r.isGo);
+    
+    // Hit: Go trial + Response
+    const hits = goTrials.filter(r => r.responded).length;
+    // FA: NoGo trial + Response
+    const fas = nogoTrials.filter(r => r.responded).length;
+    
+    const hitRate = goTrials.length ? (hits / goTrials.length * 100) : 0;
+    const faRate = nogoTrials.length ? (fas / nogoTrials.length * 100) : 0;
+    
+    // RT only for Hits
+    const validRts = goTrials.filter(r => r.responded).map(r => r.rt);
+    const avgRt = validRts.length ? (validRts.reduce((a,b)=>a+b,0) / validRts.length) : 0;
 
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    el('hitRate').textContent = Math.round(hitRate) + '%';
+    el('faRate').textContent = Math.round(faRate) + '%';
+    el('avgRt').textContent = Math.round(avgRt) + ' ms';
+  };
 
-  let running = false;
-  let abort = false;
-  let trials = [];
-  let results = [];
-  let currentIndex = 0;
-  let responseOpen = false;
-  let tStimOn = 0;
-  let resolveResponse = null;
+  // Trial Runner
+  async function runTask() {
+    if(state.running) return;
+    
+    // Init
+    state.running = true;
+    state.results = [];
+    state.controller = new AbortController();
+    
+    el('startBtn').disabled = true;
+    el('stopBtn').disabled = false;
+    el('instructions').style.display = 'none';
+    document.body.classList.add('running');
+    
+    const cfg = {
+      n: Number(el('nTrials').value),
+      ratio: Number(el('goRatio').value),
+      dur: Number(el('stimMs').value)
+    };
 
-  function buildTrials(nTrials, ratio) {
-    const list = [];
-    for (let i = 0; i < nTrials; i++) {
-      const isGo = Math.random() < ratio;
-      list.push({ trialIndex: i + 1, isGo });
+    try {
+      for(let i=0; i<cfg.n; i++) {
+        if(state.controller.signal.aborted) break;
+
+        // 1. ITI / Fixation
+        el('stimulus').style.display = 'none';
+        el('fixation').style.display = 'block';
+        el('feedback').textContent = '';
+        
+        // Random ITI 800-1200ms
+        await sleep(800 + Math.random() * 400);
+        
+        if(state.controller.signal.aborted) break;
+
+        // 2. Stimulus
+        el('fixation').style.display = 'none';
+        const isGo = Math.random() < cfg.ratio;
+        const stim = el('stimulus');
+        stim.style.display = 'block';
+        stim.style.background = isGo ? 'var(--go-color)' : 'var(--nogo-color)';
+
+        // 3. Response Window
+        const tStart = performance.now();
+        const resp = await waitForResponse(cfg.dur, state.controller.signal);
+        const tEnd = performance.now();
+        
+        // 4. Record
+        const responded = (resp !== null);
+        const rt = responded ? (tEnd - tStart) : 0;
+        
+        state.results.push({
+          id: i+1,
+          isGo,
+          responded,
+          rt,
+          correct: (isGo && responded) || (!isGo && !responded)
+        });
+
+        updateUI();
+      }
+    } catch(e) {
+      console.log('Task stopped');
+    } finally {
+      // Cleanup
+      state.running = false;
+      document.body.classList.remove('running');
+      el('stimulus').style.display = 'none';
+      el('fixation').style.display = 'none';
+      el('instructions').style.display = 'block';
+      el('startBtn').disabled = false;
+      el('stopBtn').disabled = true;
     }
-    return list;
   }
 
-  function renderStim(isGo) {
-    stim.style.display = 'block';
-    stim.style.background = isGo ? 'var(--go)' : 'var(--nogo)';
-  }
+  function waitForResponse(ms, signal) {
+    return new Promise(resolve => {
+      let timer;
+      const onKey = (e) => {
+        if(e.code === 'Space') {
+          cleanup();
+          resolve(true); // responded
+        }
+        if(e.code === 'Escape') {
+          cleanup();
+          el('stopBtn').click();
+          resolve(null);
+        }
+      };
+      
+      const cleanup = () => {
+        window.removeEventListener('keydown', onKey);
+        clearTimeout(timer);
+      };
 
-  function hideStim() {
-    stim.style.display = 'none';
-  }
+      window.addEventListener('keydown', onKey);
+      
+      timer = setTimeout(() => {
+        cleanup();
+        resolve(null); // timeout/no response
+      }, ms);
 
-  function updateLog() {
-    const tail = results.slice(-10);
-    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
-  }
-
-  function mean(nums) {
-    const v = nums.filter(x => Number.isFinite(x));
-    if (!v.length) return NaN;
-    return v.reduce((a,b)=>a+b,0) / v.length;
-  }
-
-  function updateStats() {
-    if (!results.length) { statsBox.textContent = '—'; return; }
-    const goTrials = results.filter(r => r.isGo);
-    const nogoTrials = results.filter(r => !r.isGo);
-    const hits = goTrials.filter(r => r.response === 'space').length;
-    const omissions = goTrials.filter(r => r.response === 'none').length;
-    const commissions = nogoTrials.filter(r => r.response === 'space').length;
-    const rt = goTrials.filter(r => Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
-    statsBox.textContent =
-`已完成: ${results.length}
-Go 命中率: ${fmt((hits / Math.max(1, goTrials.length)) * 100)}%
-漏报率: ${fmt((omissions / Math.max(1, goTrials.length)) * 100)}%
-误报率(No-Go): ${fmt((commissions / Math.max(1, nogoTrials.length)) * 100)}%
-平均RT(ms): ${fmt(mean(rt))}`;
-  }
-
-  function openResponseWindow() {
-    responseOpen = true;
-    tStimOn = performance.now();
-    return new Promise((resolve) => { resolveResponse = resolve; });
-  }
-
-  function closeResponseWindow() {
-    responseOpen = false;
-    resolveResponse = null;
-  }
-
-  function handleResponse() {
-    if (!running || !responseOpen) return;
-    const rt = Math.round(performance.now() - tStimOn);
-    const trial = trials[currentIndex];
-    results.push({
-      trialIndex: trial.trialIndex,
-      isGo: trial.isGo,
-      response: 'space',
-      correct: trial.isGo ? 1 : 0,
-      rtMs: rt,
-      timestamp: new Date().toISOString(),
-    });
-    closeResponseWindow();
-    if (resolveResponse) resolveResponse('responded');
-    updateLog();
-    updateStats();
-  }
-
-  async function runTrial() {
-    const trial = trials[currentIndex];
-    trialInfo.textContent = `试次 ${trial.trialIndex}/${trials.length} | ${trial.isGo ? 'Go' : 'No-Go'}`;
-    renderStim(trial.isGo);
-    const responsePromise = openResponseWindow();
-    await sleep(Number(stimMsInput.value));
-    hideStim();
-
-    const timeoutPromise = sleep(Number(itiMsInput.value)).then(() => 'timeout');
-    const outcome = await Promise.race([responsePromise, timeoutPromise]);
-
-    if (outcome === 'timeout') {
-      results.push({
-        trialIndex: trial.trialIndex,
-        isGo: trial.isGo,
-        response: 'none',
-        correct: trial.isGo ? 0 : 1,
-        rtMs: '',
-        timestamp: new Date().toISOString(),
+      signal.addEventListener('abort', () => {
+        cleanup();
+        resolve(null);
       });
-      updateLog();
-      updateStats();
-      closeResponseWindow();
-    }
+    });
   }
 
-  async function start() {
-    if (running) return;
-    const nTrials = Number(nTrialsInput.value);
-    const ratio = Number(goRatioInput.value);
-    if (!Number.isFinite(nTrials) || nTrials < 5) return;
-    if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
-
-    running = true;
-    abort = false;
-    currentIndex = 0;
-    results = [];
-    trials = buildTrials(nTrials, ratio);
-
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    updateLog();
-    updateStats();
-
-    while (running && !abort && currentIndex < trials.length) {
-      await runTrial();
-      currentIndex += 1;
-    }
-
-    finish();
-  }
-
-  function finish() {
-    running = false;
-    abort = false;
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    trialInfo.textContent = '—';
-    hideStim();
-  }
-
-  function stop() {
-    if (!running) return;
-    abort = true;
-    running = false;
-    closeResponseWindow();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    trialInfo.textContent = '已停止';
-    hideStim();
-  }
-
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { stop(); return; }
-    if (e.code === 'Space') { e.preventDefault(); handleResponse(); }
-  }
-
-  startBtn.onclick = start;
-  stopBtn.onclick = stop;
-  window.addEventListener('keydown', onKeyDown);
-})();
+  // Bindings
+  el('startBtn').onclick = runTask;
+  el('stopBtn').onclick = () => state.controller && state.controller.abort();
+  
+  el('dlCsv').onclick = (e) => {
+    e.preventDefault();
+    if(!state.results.length) return alert('No data collected');
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Trial,Type,Responded,RT,Correct\n"
+      + state.results.map(r => `${r.id},${r.isGo?'GO':'NOGO'},${r.responded},${Math.round(r.rt)},${r.correct?1:0}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "go_nogo_results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 </script>
 </body>
 </html>
