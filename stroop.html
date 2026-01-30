@@ -3,472 +3,284 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stroop 训练</title>
+  <title>Stroop Task</title>
   <style>
-    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-           background:var(--bg); color:var(--fg); }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 20px; }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:260px; }
-    h1 { font-size:18px; margin:0 0 12px; }
-    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
-    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    input, select, button, textarea {
-      font: inherit; color: var(--fg);
-      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
-      padding:10px 12px; outline:none;
+    :root {
+      --bg: #ffffff;
+      --text: #1e293b;
+      --border: #e2e8f0;
     }
-    input, select { width:100%; box-sizing:border-box; }
-    button { cursor:pointer; }
-    button.primary { background:#15325b; border-color:#2a4d86; }
-    button.danger { background:#4a1d2b; border-color:#7a2a3f; }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-    .stage { height: 320px; display:flex; align-items:center; justify-content:center; border-radius:14px;
-             border:1px dashed #2a3950; background:#0c121c; position:relative; overflow:hidden; }
-    .fix { font-size:40px; color:#cfe1ff; opacity:.9; }
-    .stim { font-size:72px; font-weight:800; letter-spacing:2px; }
-    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
-    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
-    .btns { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:12px; }
-    .colorBtn { padding:12px 10px; font-weight:700; }
-    .stats { font-size:12px; color:var(--muted); line-height:1.6; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; }
-    .usage { margin-top:16px; color:var(--muted); font-size:12px; line-height:1.6; }
-    .usage ul { margin:6px 0 0 18px; padding:0; }
-    .usage li { margin-bottom:4px; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Header & Settings */
+    header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+    h1 { margin: 0; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    
+    .settings-bar { display: flex; gap: 16px; align-items: center; }
+    .setting-item { display: flex; flex-direction: column; }
+    .setting-item label { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    .setting-item input { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-size: 0.9rem; width: 80px; }
+    
+    .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 0.9rem; }
+    .btn-primary { background: #0f172a; color: white; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { border: 1px solid #cbd5e1; background: white; color: #0f172a; }
+
+    /* Stage */
+    .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+    
+    .fixation { font-size: 4rem; color: #cbd5e1; font-weight: 300; }
+    .stimulus { font-size: 6rem; font-weight: 900; letter-spacing: 2px; transition: transform 0.1s; }
+    
+    .feedback-msg { position: absolute; top: 20%; font-size: 1.5rem; font-weight: bold; opacity: 0; transition: opacity 0.2s; }
+    .feedback-msg.show { opacity: 1; }
+
+    /* Key Mapping Bar */
+    .key-bar { 
+      padding: 40px; border-top: 1px solid var(--border); 
+      display: flex; justify-content: center; gap: 20px; background: #f8fafc; 
+    }
+    
+    .color-key {
+      position: relative;
+      width: 100px; height: 100px;
+      border-radius: 12px;
+      border: 4px solid transparent;
+      background: white;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    
+    .color-key::before {
+      content: ''; display: block; width: 40px; height: 40px; border-radius: 50%; margin-bottom: 8px;
+    }
+    
+    .color-key[data-color="red"]::before { background: #ef4444; }
+    .color-key[data-color="green"]::before { background: #22c55e; }
+    .color-key[data-color="blue"]::before { background: #3b82f6; }
+    .color-key[data-color="yellow"]::before { background: #eab308; }
+
+    .color-key .key-label { font-size: 1.2rem; font-weight: 700; color: #94a3b8; font-family: monospace; }
+    
+    /* Active States */
+    .color-key.active { transform: translateY(4px); box-shadow: none; background: #e2e8f0; }
+    .color-key[data-color="red"].active { border-color: #ef4444; }
+    .color-key[data-color="green"].active { border-color: #22c55e; }
+    .color-key[data-color="blue"].active { border-color: #3b82f6; }
+    .color-key[data-color="yellow"].active { border-color: #eab308; }
+
+    /* Results Modal (Simple Overlay) */
+    .stats-overlay {
+      position: absolute; top: 20px; right: 20px;
+      background: rgba(255,255,255,0.9);
+      padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.85rem; pointer-events: none;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="row">
-      <div class="card">
-        <h1>Stroop 训练（识别字体颜色）</h1>
-        <div class="stage" id="stage" aria-live="polite">
-          <div class="fix" id="fix">按“开始”</div>
-          <div class="stim" id="stim" style="display:none;"></div>
-          <div class="hint">
-            <div id="trialInfo">—</div>
-            <div class="keys">
-              <span class="kbd">R</span><span class="kbd">G</span><span class="kbd">B</span><span class="kbd">Y</span>
-              <span class="kbd">Esc</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="usage">
-          <h2>使用说明</h2>
-          <ul>
-            <li>先在右侧设置试次数、间隔等参数，点击“开始”。</li>
-            <li>出现文字后只判断字体颜色，忽略字义。</li>
-            <li>用键盘 R/G/B/Y 或下方 1/2/3/4 按钮作答。</li>
-            <li>需要中止可按 Esc 或“停止”，结束后可导出 CSV。</li>
-          </ul>
-        </div>
-
-        <div class="btns">
-          <button class="colorBtn" id="btnRed">1</button>
-          <button class="colorBtn" id="btnGreen">2</button>
-          <button class="colorBtn" id="btnBlue">3</button>
-          <button class="colorBtn" id="btnYellow">4</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>参数</h2>
-
-        <label>试次数</label>
-        <input id="nTrials" type="number" min="10" max="500" step="10" value="60" />
-
-        <label>一致比例（0~1）</label>
-        <input id="congruentRatio" type="number" min="0" max="1" step="0.05" value="0.3" />
-
-        <label>超时（毫秒）</label>
-        <input id="timeoutMs" type="number" min="500" max="10000" step="100" value="2000" />
-
-        <label>固视（毫秒）</label>
-        <input id="fixMs" type="number" min="0" max="2000" step="50" value="300" />
-
-        <label>试次间隔 ITI（毫秒）</label>
-        <input id="itiMs" type="number" min="0" max="3000" step="50" value="300" />
-
-        <label>启用按钮作答</label>
-        <select id="enableButtons">
-          <option value="1" selected>启用</option>
-          <option value="0">禁用（仅键盘）</option>
-        </select>
-
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="primary" id="startBtn">开始</button>
-          <button class="danger" id="stopBtn" disabled>停止</button>
-          <button id="exportBtn" disabled>导出 CSV</button>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>统计</h2>
-          <div class="stats mono" id="stats">—</div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>数据（最近 10 条）</h2>
-          <textarea class="mono" id="log" readonly></textarea>
-        </div>
-      </div>
+<header>
+  <h1>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
+    Stroop Task
+  </h1>
+  <div class="settings-bar">
+    <div class="setting-item">
+      <label>Trials</label>
+      <input type="number" id="nTrials" value="40">
     </div>
+    <div class="setting-item">
+      <label>Incongruent %</label>
+      <input type="number" id="ratio" value="50">
+    </div>
+    <div class="setting-item">
+      <label>Duration (ms)</label>
+      <input type="number" id="dur" value="1500">
+    </div>
+    <button class="btn btn-primary" id="startBtn">Start Task</button>
+    <button class="btn btn-outline" id="dlBtn" disabled>CSV</button>
   </div>
+</header>
+
+<main class="stage">
+  <div class="stats-overlay" id="statsBox">Ready</div>
+  <div class="feedback-msg" id="feedback"></div>
+  <div class="fixation" id="fix">+</div>
+  <div class="stimulus" id="stim" style="display:none;">RED</div>
+</main>
+
+<div class="key-bar">
+  <div class="color-key" data-color="red" id="keyRed"><span class="key-label">D</span></div>
+  <div class="color-key" data-color="green" id="keyGreen"><span class="key-label">F</span></div>
+  <div class="color-key" data-color="blue" id="keyBlue"><span class="key-label">J</span></div>
+  <div class="color-key" data-color="yellow" id="keyYellow"><span class="key-label">K</span></div>
+</div>
 
 <script>
-(() => {
+  // Config
+  const KEY_MAP = {
+    'd': 'red', 'D': 'red',
+    'f': 'green', 'F': 'green',
+    'j': 'blue', 'J': 'blue',
+    'k': 'yellow', 'K': 'yellow'
+  };
+  
   const COLORS = [
-    { key: 'R', name: '红', css: '#ff4d4d' },
-    { key: 'G', name: '绿', css: '#37d67a' },
-    { key: 'B', name: '蓝', css: '#4d7dff' },
-    { key: 'Y', name: '黄', css: '#ffd54d' },
+    { name: 'Red', hex: '#ef4444', id: 'red' },
+    { name: 'Green', hex: '#22c55e', id: 'green' },
+    { name: 'Blue', hex: '#3b82f6', id: 'blue' },
+    { name: 'Yellow', hex: '#eab308', id: 'yellow' }
   ];
 
-  const el = (id) => document.getElementById(id);
-
-  const stage = el('stage');
-  const fix = el('fix');
-  const stim = el('stim');
-  const trialInfo = el('trialInfo');
-
-  const startBtn = el('startBtn');
-  const stopBtn = el('stopBtn');
-  const exportBtn = el('exportBtn');
-
-  const nTrialsInput = el('nTrials');
-  const congruentRatioInput = el('congruentRatio');
-  const timeoutMsInput = el('timeoutMs');
-  const fixMsInput = el('fixMs');
-  const itiMsInput = el('itiMs');
-  const enableButtonsSel = el('enableButtons');
-
-  const statsBox = el('stats');
-  const logBox = el('log');
-
-  const btnRed = el('btnRed');
-  const btnGreen = el('btnGreen');
-  const btnBlue = el('btnBlue');
-  const btnYellow = el('btnYellow');
-
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  function mean(nums) {
-    const v = nums.filter(x => Number.isFinite(x));
-    if (!v.length) return NaN;
-    return v.reduce((a,b)=>a+b,0) / v.length;
-  }
-
-  function pct(a, b) {
-    if (!b) return NaN;
-    return (a / b) * 100;
-  }
-
-  function nowISO() {
-    return new Date().toISOString();
-  }
-
-  function toCSV(rows) {
-    const header = [
-      'trialIndex','condition','word','inkColor','response','correct','rtMs','timeout','timestamp'
-    ];
-    const esc = (s) => {
-      const str = String(s ?? '');
-      if (/[",\n]/.test(str)) return `"${str.replace(/"/g,'""')}"`;
-      return str;
-    };
-    const lines = [header.join(',')];
-    for (const r of rows) {
-      lines.push(header.map(k => esc(r[k])).join(','));
-    }
-    return lines.join('\n');
-  }
+  const el = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   let running = false;
-  let abort = false;
-
-  let trials = [];
   let results = [];
+  let abortController = null;
 
-  let current = null;            // 当前试次对象
-  let tStimOn = null;            // 刺激出现时间
-  let responseWindowOpen = false;
-  let timeoutHandle = null;
+  async function runBlock() {
+    if(running) return;
+    running = true;
+    results = [];
+    abortController = new AbortController();
+    
+    // UI Setup
+    el('startBtn').disabled = true;
+    el('dlBtn').disabled = true;
+    document.querySelectorAll('.setting-item input').forEach(i => i.disabled = true);
+    
+    const n = Number(el('nTrials').value);
+    const ratio = Number(el('ratio').value) / 100;
+    const dur = Number(el('dur').value);
 
-  function setButtonsEnabled(enabled) {
-    const en = enabled && enableButtonsSel.value === '1';
-    for (const b of [btnRed, btnGreen, btnBlue, btnYellow]) b.disabled = !en;
-  }
-
-  function renderStageFix() {
-    stim.style.display = 'none';
-    fix.style.display = 'block';
-    fix.textContent = '+';
-  }
-
-  function renderStageText(word, inkCss) {
-    fix.style.display = 'none';
-    stim.style.display = 'block';
-    stim.textContent = word;
-    stim.style.color = inkCss;
-  }
-
-  function renderStageMessage(msg) {
-    stim.style.display = 'none';
-    fix.style.display = 'block';
-    fix.textContent = msg;
-  }
-
-  function buildTrials(nTrials, congruentRatio) {
-    const nCong = Math.round(nTrials * congruentRatio);
-    const nIncong = nTrials - nCong;
-
-    const list = [];
-    for (let i = 0; i < nCong; i++) {
-      const c = COLORS[Math.floor(Math.random() * COLORS.length)];
-      list.push({
-        condition: 'congruent',
-        word: c.name,
-        ink: c, // ink color equals word
-      });
+    // Generate Trials
+    const trials = [];
+    for(let i=0; i<n; i++) {
+        const isIncong = Math.random() < ratio;
+        const ink = COLORS[Math.floor(Math.random() * COLORS.length)];
+        let word = ink;
+        
+        if(isIncong) {
+            // Pick a different word
+            const others = COLORS.filter(c => c.id !== ink.id);
+            word = others[Math.floor(Math.random() * others.length)];
+        }
+        trials.push({ id: i+1, type: isIncong ? 'Incong' : 'Cong', ink, word });
     }
-    for (let i = 0; i < nIncong; i++) {
-      const ink = COLORS[Math.floor(Math.random() * COLORS.length)];
-      let word;
-      do {
-        word = COLORS[Math.floor(Math.random() * COLORS.length)];
-      } while (word.key === ink.key);
-      list.push({
-        condition: 'incongruent',
-        word: word.name,
-        ink: ink,
-      });
-    }
-    shuffle(list);
-    return list.map((t, idx) => ({ ...t, trialIndex: idx + 1 }));
+
+    try {
+        for(const t of trials) {
+            if(abortController.signal.aborted) break;
+
+            // 1. Fixation
+            el('stim').style.display = 'none';
+            el('fix').style.display = 'block';
+            el('feedback').classList.remove('show');
+            
+            await sleep(500); // ITI
+            
+            // 2. Stimulus
+            el('fix').style.display = 'none';
+            const stim = el('stim');
+            stim.textContent = t.word.name; // The Text
+            stim.style.color = t.ink.hex;   // The Color
+            stim.style.display = 'block';
+
+            const t0 = performance.now();
+            const respColor = await waitForResponse(dur, abortController.signal);
+            const rt = respColor ? Math.round(performance.now() - t0) : 0;
+            
+            // 3. Evaluate
+            const acc = respColor === t.ink.id ? 1 : 0;
+            results.push({ ...t, resp: respColor || 'timeout', acc, rt });
+            
+            // 4. Feedback
+            updateStats();
+            if(!respColor) showFeedback("Timeout", "#64748b");
+            else if(!acc) showFeedback("X", "#ef4444");
+        }
+    } catch(e) { console.log('Stopped'); }
+    
+    finish();
   }
 
-  function clearTimeoutIfAny() {
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-      timeoutHandle = null;
-    }
+  function finish() {
+    running = false;
+    el('startBtn').disabled = false;
+    el('dlBtn').disabled = false;
+    document.querySelectorAll('.setting-item input').forEach(i => i.disabled = false);
+    el('stim').style.display = 'none';
+    el('fix').style.display = 'block';
+    el('fix').textContent = "Done";
   }
 
-  function openResponseWindow(timeoutMs) {
-    responseWindowOpen = true;
-    tStimOn = performance.now();
-
-    clearTimeoutIfAny();
-    timeoutHandle = setTimeout(() => {
-      if (!responseWindowOpen) return;
-      handleResponse(null, true);
-    }, timeoutMs);
-  }
-
-  function closeResponseWindow() {
-    responseWindowOpen = false;
-    clearTimeoutIfAny();
-  }
-
-  function handleResponse(respKey, isTimeout=false) {
-    if (!running || !responseWindowOpen || !current) return;
-
-    closeResponseWindow();
-
-    const rt = isTimeout ? null : Math.round(performance.now() - tStimOn);
-    const inkKey = current.ink.key;
-    const correct = !isTimeout && respKey === inkKey;
-
-    const row = {
-      trialIndex: current.trialIndex,
-      condition: current.condition,
-      word: current.word,
-      inkColor: inkKey,
-      response: respKey ?? '',
-      correct: correct ? 1 : 0,
-      rtMs: rt ?? '',
-      timeout: isTimeout ? 1 : 0,
-      timestamp: nowISO(),
-    };
-
-    results.push(row);
-    updateLog();
-    updateStats();
-
-    // 进入ITI再进入下一试次
-    (async () => {
-      renderStageMessage(isTimeout ? '超时' : (correct ? '正确' : '错误'));
-      await sleep(200);
-      renderStageMessage('');
-      await sleep(Number(itiMsInput.value));
-      await nextTrial();
-    })();
-  }
-
-  function updateLog() {
-    const tail = results.slice(-10);
-    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
+  function showFeedback(text, color) {
+    const fb = el('feedback');
+    fb.textContent = text;
+    fb.style.color = color;
+    fb.classList.add('show');
   }
 
   function updateStats() {
-    if (!results.length) { statsBox.textContent = '—'; return; }
+    const acc = Math.round((results.filter(r => r.acc).length / results.length) * 100);
+    const valid = results.filter(r => r.acc);
+    const meanRt = valid.length ? Math.round(valid.reduce((a,b)=>a+b.rt,0)/valid.length) : 0;
+    
+    // Stroop Effect
+    const congRt = valid.filter(r=>r.type==='Cong').reduce((a,b)=>a+b.rt,0) / valid.filter(r=>r.type==='Cong').length || 0;
+    const incongRt = valid.filter(r=>r.type==='Incong').reduce((a,b)=>a+b.rt,0) / valid.filter(r=>r.type==='Incong').length || 0;
+    const effect = Math.round(incongRt - congRt);
 
-    const ok = results.filter(r => r.correct === 1).length;
-    const total = results.length;
-
-    const rtAll = results.filter(r => r.timeout === 0).map(r => Number(r.rtMs));
-    const rtCong = results.filter(r => r.timeout === 0 && r.condition === 'congruent').map(r => Number(r.rtMs));
-    const rtIncong = results.filter(r => r.timeout === 0 && r.condition === 'incongruent').map(r => Number(r.rtMs));
-
-    const mAll = mean(rtAll);
-    const mC = mean(rtCong);
-    const mI = mean(rtIncong);
-    const stroop = (Number.isFinite(mI) && Number.isFinite(mC)) ? (mI - mC) : NaN;
-
-    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
-
-    statsBox.textContent =
-`已完成: ${total}
-正确率: ${fmt(pct(ok,total))}%
-平均RT(ms): ${fmt(mAll)}
-一致 平均RT(ms): ${fmt(mC)} | 不一致 平均RT(ms): ${fmt(mI)}
-Stroop效应(ms): ${fmt(stroop)}`;
+    el('statsBox').innerHTML = `
+      <strong>Stats</strong><br>
+      Acc: ${acc}%<br>
+      RT: ${meanRt}ms<br>
+      Effect: ${effect > 0 ? '+' : ''}${effect}ms
+    `;
   }
 
-  async function nextTrial() {
-    if (!running) return;
-    if (abort) return;
+  function waitForResponse(ms, signal) {
+    return new Promise(resolve => {
+        let timer;
+        const handler = (e) => {
+            const color = KEY_MAP[e.key];
+            if(color) {
+                highlightKey(color);
+                cleanup();
+                resolve(color);
+            }
+        };
+        const cleanup = () => {
+            clearTimeout(timer);
+            window.removeEventListener('keydown', handler);
+        };
+        window.addEventListener('keydown', handler);
+        timer = setTimeout(() => { cleanup(); resolve(null); }, ms);
+        signal.addEventListener('abort', () => { cleanup(); resolve(null); });
+    });
+  }
 
-    const idx = results.length;
-    if (idx >= trials.length) {
-      await finish();
-      return;
+  function highlightKey(colorId) {
+    const k = document.querySelector(`.color-key[data-color="${colorId}"]`);
+    if(k) {
+        k.classList.add('active');
+        setTimeout(() => k.classList.remove('active'), 150);
     }
-
-    current = trials[idx];
-    trialInfo.textContent = `试次 ${current.trialIndex}/${trials.length} | ${current.condition === 'congruent' ? '一致' : '不一致'}`;
-
-    // 固视
-    renderStageFix();
-    await sleep(Number(fixMsInput.value));
-    if (!running || abort) return;
-
-    // 刺激
-    renderStageText(current.word, current.ink.css);
-    openResponseWindow(Number(timeoutMsInput.value));
   }
 
-  async function start() {
-    if (running) return;
+  el('startBtn').onclick = runBlock;
+  el('dlBtn').onclick = () => {
+      const csv = "Trial,Condition,Word,Ink,Resp,Acc,RT\n" + 
+        results.map(r => `${r.id},${r.type},${r.word.name},${r.ink.name},${r.resp},${r.acc},${r.rt}`).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'stroop_data.csv'; a.click();
+  };
 
-    // 参数校验
-    const n = Number(nTrialsInput.value);
-    const ratio = Number(congruentRatioInput.value);
-    if (!Number.isFinite(n) || n < 10) return;
-    if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
-
-    running = true;
-    abort = false;
-    results = [];
-    trials = buildTrials(n, ratio);
-
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    exportBtn.disabled = true;
-    setButtonsEnabled(true);
-
-    updateLog();
-    updateStats();
-
-    renderStageMessage('准备');
-    await sleep(300);
-    await nextTrial();
-  }
-
-  async function finish() {
-    running = false;
-    abort = false;
-    closeResponseWindow();
-    current = null;
-
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    exportBtn.disabled = results.length === 0;
-    setButtonsEnabled(false);
-
-    renderStageMessage('完成');
-    trialInfo.textContent = '—';
-  }
-
-  function stop() {
-    if (!running) return;
-    abort = true;
-    running = false;
-    closeResponseWindow();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    exportBtn.disabled = results.length === 0;
-    setButtonsEnabled(false);
-    renderStageMessage('已停止');
-    trialInfo.textContent = '—';
-  }
-
-  function exportCSV() {
-    if (!results.length) return;
-    const csv = toCSV(results);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `stroop_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  // 输入映射：R/G/B/Y
-  function keyToColorKey(e) {
-    const k = String(e.key || '').toUpperCase();
-    if (['R','G','B','Y'].includes(k)) return k;
-    return null;
-  }
-
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { stop(); return; }
-    const k = keyToColorKey(e);
-    if (!k) return;
-    e.preventDefault();
-    handleResponse(k, false);
-  }
-
-  // 按钮点击
-  btnRed.onclick = () => handleResponse('R', false);
-  btnGreen.onclick = () => handleResponse('G', false);
-  btnBlue.onclick = () => handleResponse('B', false);
-  btnYellow.onclick = () => handleResponse('Y', false);
-
-  startBtn.onclick = start;
-  stopBtn.onclick = stop;
-  exportBtn.onclick = exportCSV;
-
-  enableButtonsSel.onchange = () => setButtonsEnabled(running);
-
-  window.addEventListener('keydown', onKeyDown);
-  setButtonsEnabled(false);
-})();
 </script>
 </body>
 </html>
