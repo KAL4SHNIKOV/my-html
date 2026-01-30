@@ -3,322 +3,339 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>任务切换（Task Switching）</title>
+  <title>Task Switching Paradigm</title>
   <style>
-    :root { --bg:#0b0f14; --fg:#e8eef6; --muted:#9fb0c3; --card:#111826; --bd:#223044; --accent:#f59e0b; --accent2:#38bdf8; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg); }
-    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; flex:1; min-width:280px; }
-    h1 { font-size:18px; margin:0 0 12px; }
-    h2 { font-size:14px; margin:0 0 10px; color:var(--muted); font-weight:600; }
-    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    input, button {
-      font: inherit; color: var(--fg);
-      background:#0e1522; border:1px solid var(--bd); border-radius:10px;
-      padding:10px 12px; outline:none;
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #334155;
+      --text-light: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-orange: #f97316;
+      --success: #22c55e;
+      --error: #ef4444;
+      --border: #e2e8f0;
     }
-    input { width:100%; box-sizing:border-box; }
-    button { cursor:pointer; }
-    button.primary { background:#15325b; border-color:#2a4d86; }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-    .stage { height: 320px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; border-radius:14px; border:1px dashed #2a3950; background:#0c121c; position:relative; }
-    .stim {
-      font-size:72px;
-      font-weight:700;
-      padding:18px 36px;
-      border-radius:16px;
-      border:1px solid #1f2a3a;
-      background:#0e1522;
-      min-width:140px;
-      text-align:center;
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; }
+    
+    /* Sidebar */
+    .sidebar { width: 300px; background: var(--panel); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; transition: opacity 0.3s; z-index: 10; overflow-y: auto; }
+    .sidebar.dimmed { opacity: 0.2; pointer-events: none; }
+    
+    h1 { font-size: 1.25rem; margin: 0 0 20px; color: #0f172a; font-weight: 700; }
+    .control-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; color: var(--text-light); margin-bottom: 6px; font-weight: 500; }
+    input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: monospace; box-sizing: border-box; }
+    
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
+    .btn-primary { background: #0f172a; color: white; }
+    .btn-primary:hover { background: #1e293b; }
+    .btn-stop { background: #fee2e2; color: var(--error); margin-top: 12px; }
+    
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; }
+    .stat-card { background: #f1f5f9; padding: 12px; border-radius: 8px; text-align: center; }
+    .stat-val { font-size: 1.2rem; font-weight: 700; color: #0f172a; font-family: monospace; }
+    .stat-label { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
+
+    /* Main Stage */
+    .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #e2e8f0; transition: background 0.3s; }
+    .stage.focus { background: #cbd5e1; cursor: none; }
+
+    /* Task Indicators (Left/Right) */
+    .task-guide { position: absolute; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 12px; text-align: center; width: 120px; opacity: 0.4; transition: opacity 0.2s; }
+    .task-guide.active { opacity: 1; transform: translateY(-50%) scale(1.05); box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: white; }
+    .guide-left { left: 40px; border-left: 4px solid var(--text); }
+    .guide-right { right: 40px; border-right: 4px solid var(--text); }
+    .key-hint { display: block; font-size: 2rem; font-weight: 700; margin-bottom: 8px; color: #cbd5e1; }
+    .active .key-hint { color: #0f172a; }
+    
+    .rule-box { font-size: 0.9rem; margin: 4px 0; }
+    .rule-title { font-weight: 700; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 4px; }
+
+    /* Stimulus Card */
+    .stim-card {
+        width: 200px; height: 260px;
+        background: white;
+        border-radius: 20px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        font-size: 5rem; font-weight: 800;
+        transition: transform 0.1s;
+        border-top: 12px solid transparent;
+        position: relative;
     }
-    .stim.parity { background:rgba(56,189,248,0.18); border-color:rgba(56,189,248,0.6); color:var(--accent2); }
-    .stim.magnitude { background:rgba(245,158,11,0.18); border-color:rgba(245,158,11,0.6); color:var(--accent); }
-    .hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
-    .keys { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-    .kbd { border:1px solid var(--bd); border-bottom-width:3px; padding:2px 8px; border-radius:8px; background:#0e1522; }
-    .legend { font-size:12px; color:var(--muted); display:grid; gap:6px; }
-    .stats { font-size:12px; color:var(--muted); line-height:1.6; white-space:pre-line; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    textarea { width:100%; height:140px; box-sizing:border-box; resize:vertical; background:#0e1522; border:1px solid var(--bd); color:var(--fg); border-radius:10px; padding:10px; }
-    .usage { margin-top:14px; color:var(--muted); font-size:12px; line-height:1.6; }
-    .usage ul { margin:6px 0 0 18px; padding:0; }
-    .usage li { margin-bottom:4px; }
+    
+    /* Task Context Styles */
+    .task-parity .stim-card { border-color: var(--accent-blue); }
+    .task-parity .rule-parity { color: var(--accent-blue); font-weight: bold; }
+    
+    .task-magnitude .stim-card { border-color: var(--accent-orange); }
+    .task-magnitude .rule-magnitude { color: var(--accent-orange); font-weight: bold; }
+
+    /* Feedback Animations */
+    @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+    .feedback-error { animation: shake 0.3s ease-in-out; border: 2px solid var(--error) !important; }
+    .feedback-correct { border: 2px solid var(--success) !important; }
+
+    .overlay-msg { position: absolute; font-size: 1.5rem; color: #64748b; text-align: center; line-height: 1.5; pointer-events: none; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="row">
-      <div class="card">
-        <h1>任务切换（Task Switching）</h1>
-        <div class="stage" id="stage" aria-live="polite">
-          <div class="stim" id="stim">—</div>
-          <div class="hint">
-            <div id="trialInfo">—</div>
-            <div class="keys">
-              <span class="kbd">A</span><span class="kbd">L</span><span class="kbd">Esc</span>
-            </div>
-          </div>
-        </div>
-        <div class="legend" style="margin-top:12px;">
-          <div>奇偶任务：<span style="color:var(--accent2)">蓝色背景</span>，A=奇数，L=偶数。</div>
-          <div>大小任务：<span style="color:var(--accent)">橙色背景</span>，A=小于5，L=大于5。</div>
-        </div>
-        <div class="usage">
-          <h2>使用说明</h2>
-          <ul>
-            <li>点击“开始”，观察数字卡片的背景颜色。</li>
-            <li>蓝色背景做奇偶判断，橙色背景做大小判断。</li>
-            <li>按 A 或 L 作答，按 Esc 或“停止”结束。</li>
-            <li>统计区可查看切换与重复试次的反应时差异。</li>
-          </ul>
-        </div>
-        <div class="usage">
-          <h2>使用说明</h2>
-          <ul>
-            <li>点击“开始”，关注上方提示条的颜色与文字。</li>
-            <li>蓝色提示做奇偶判断，橙色提示做大小判断。</li>
-            <li>按 A 或 L 作答，按 Esc 或“停止”结束。</li>
-            <li>统计区可查看切换与重复试次的反应时差异。</li>
-          </ul>
-        </div>
-      </div>
 
-      <div class="card">
-        <h2>参数</h2>
-        <label>试次数</label>
-        <input id="nTrials" type="number" min="10" max="200" step="10" value="80" />
-
-        <label>切换比例（0~1）</label>
-        <input id="switchRatio" type="number" min="0" max="1" step="0.05" value="0.4" />
-
-        <label>刺激呈现（毫秒）</label>
-        <input id="stimMs" type="number" min="200" max="3000" step="50" value="700" />
-
-        <label>间隔 ITI（毫秒）</label>
-        <input id="itiMs" type="number" min="200" max="4000" step="50" value="900" />
-
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="primary" id="startBtn">开始</button>
-          <button id="stopBtn" disabled>停止</button>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>统计</h2>
-          <div class="stats mono" id="stats">—</div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <h2>数据（最近 10 条）</h2>
-          <textarea class="mono" id="log" readonly></textarea>
-        </div>
-      </div>
-    </div>
+<aside class="sidebar" id="sidebar">
+  <h1>Task Switching</h1>
+  
+  <div class="control-group">
+    <label>试次数 (Trials)</label>
+    <input id="nTrials" type="number" value="60" min="10">
+  </div>
+  <div class="control-group">
+    <label>切换比例 (Switch Ratio)</label>
+    <input id="switchRatio" type="number" value="0.5" step="0.1" max="1">
+  </div>
+  <div class="control-group">
+    <label>刺激呈现时间 (ms)</label>
+    <input id="stimMs" type="number" value="1000">
+  </div>
+  <div class="control-group">
+    <label>间隔时间 (ITI ms)</label>
+    <input id="itiMs" type="number" value="800">
   </div>
 
+  <button class="btn btn-primary" id="startBtn">开始实验 (Start)</button>
+  <button class="btn btn-stop" id="stopBtn" disabled>停止 (Stop)</button>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="accDisplay">0%</div>
+      <div class="stat-label">正确率</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="rtDisplay">-</div>
+      <div class="stat-label">平均RT</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="switchCostDisplay">-</div>
+      <div class="stat-label">切换代价</div>
+    </div>
+  </div>
+  
+  <button class="btn" style="background:transparent; border:1px solid #cbd5e1; margin-top:auto;" id="exportBtn" disabled>下载数据 CSV</button>
+</aside>
+
+<main class="stage" id="stage">
+  <div class="overlay-msg" id="msg">
+    点击左侧“开始”<br>
+    <span style="font-size:0.9rem; margin-top:10px; display:block;">按 ← 和 → 键反应</span>
+  </div>
+
+  <div class="task-guide guide-left" id="guideLeft">
+    <div class="key-hint">←</div>
+    <div class="rule-box rule-parity">奇数<br><span style="font-size:0.7em; color:#94a3b8;">Odd</span></div>
+    <div style="height:1px; background:#e2e8f0; margin:8px 0;"></div>
+    <div class="rule-box rule-magnitude">小于 5<br><span style="font-size:0.7em; color:#94a3b8;">&lt; 5</span></div>
+  </div>
+
+  <div class="stim-card" id="stimCard" style="display:none;">
+    <span id="stimNum"></span>
+    <div style="font-size:0.8rem; color:#94a3b8; position:absolute; bottom:20px; text-transform:uppercase; letter-spacing:2px;" id="taskLabel"></div>
+  </div>
+
+  <div class="task-guide guide-right" id="guideRight">
+    <div class="key-hint">→</div>
+    <div class="rule-box rule-parity">偶数<br><span style="font-size:0.7em; color:#94a3b8;">Even</span></div>
+    <div style="height:1px; background:#e2e8f0; margin:8px 0;"></div>
+    <div class="rule-box rule-magnitude">大于 5<br><span style="font-size:0.7em; color:#94a3b8;">&gt; 5</span></div>
+  </div>
+</main>
+
 <script>
-(() => {
-  const el = (id) => document.getElementById(id);
-  const stim = el('stim');
-  const trialInfo = el('trialInfo');
-  const statsBox = el('stats');
-  const logBox = el('log');
-
-  const startBtn = el('startBtn');
-  const stopBtn = el('stopBtn');
-
-  const nTrialsInput = el('nTrials');
-  const switchRatioInput = el('switchRatio');
-  const stimMsInput = el('stimMs');
-  const itiMsInput = el('itiMs');
-
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
+  const el = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  
+  // State
   let running = false;
-  let abort = false;
-  let trials = [];
+  let abortController = null;
   let results = [];
-  let currentIndex = 0;
-  let responseOpen = false;
-  let tStimOn = 0;
-  let resolveResponse = null;
+  const numbers = [1,2,3,4,6,7,8,9]; // Exclude 5
 
-  const numbers = [1,2,3,4,6,7,8,9];
+  // UI Helpers
+  const setUI = (state) => {
+    el('sidebar').classList.toggle('dimmed', state === 'running');
+    el('stage').classList.toggle('focus', state === 'running');
+    el('startBtn').disabled = state === 'running';
+    el('stopBtn').disabled = state !== 'running';
+    el('nTrials').disabled = state === 'running';
+  };
 
-  function buildTrials(nTrials, switchRatio) {
-    const list = [];
-    let currentTask = Math.random() < 0.5 ? 'parity' : 'magnitude';
-    for (let i = 0; i < nTrials; i++) {
-      const shouldSwitch = i > 0 && Math.random() < switchRatio;
-      if (shouldSwitch) currentTask = currentTask === 'parity' ? 'magnitude' : 'parity';
-      const value = numbers[Math.floor(Math.random() * numbers.length)];
-      list.push({ trialIndex: i + 1, task: currentTask, value, switch: shouldSwitch ? 1 : 0 });
-    }
-    return list;
-  }
+  const updateStats = () => {
+    if(!results.length) return;
+    const correct = results.filter(r => r.acc).length;
+    const acc = (correct / results.length * 100).toFixed(1);
+    
+    const valid = results.filter(r => r.acc && r.rt);
+    const avgRt = valid.length ? Math.round(valid.reduce((a,b)=>a+b.rt,0)/valid.length) : '-';
+    
+    // Switch Cost
+    const switchTrials = valid.filter(r => r.isSwitch);
+    const repeatTrials = valid.filter(r => !r.isSwitch);
+    const switchRt = switchTrials.length ? switchTrials.reduce((a,b)=>a+b.rt,0)/switchTrials.length : 0;
+    const repeatRt = repeatTrials.length ? repeatTrials.reduce((a,b)=>a+b.rt,0)/repeatTrials.length : 0;
+    const cost = (switchRt && repeatRt) ? Math.round(switchRt - repeatRt) : '-';
 
-  function renderTrial(trial) {
-    stim.textContent = String(trial.value);
-    stim.className = `stim ${trial.task}`;
-  }
+    el('accDisplay').textContent = acc + '%';
+    el('rtDisplay').textContent = avgRt + ' ms';
+    el('switchCostDisplay').textContent = cost + ' ms';
+  };
 
-  function clearTrial() {
-    stim.textContent = '—';
-    stim.className = 'stim';
-  }
-
-  function updateLog() {
-    const tail = results.slice(-10);
-    logBox.value = tail.map(r => JSON.stringify(r)).join('\n');
-  }
-
-  function mean(nums) {
-    const v = nums.filter(x => Number.isFinite(x));
-    if (!v.length) return NaN;
-    return v.reduce((a,b)=>a+b,0) / v.length;
-  }
-
-  function updateStats() {
-    if (!results.length) { statsBox.textContent = '—'; return; }
-    const ok = results.filter(r => r.correct).length;
-    const total = results.length;
-    const rt = results.filter(r => Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const rtSwitch = results.filter(r => r.switch === 1 && Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const rtRepeat = results.filter(r => r.switch === 0 && Number.isFinite(r.rtMs)).map(r => r.rtMs);
-    const fmt = (x) => Number.isFinite(x) ? String(Math.round(x)) : '—';
-    statsBox.textContent =
-`已完成: ${total}
-正确率: ${fmt((ok / total) * 100)}%
-平均RT(ms): ${fmt(mean(rt))}
-切换RT(ms): ${fmt(mean(rtSwitch))} | 重复RT(ms): ${fmt(mean(rtRepeat))}`;
-  }
-
-  function openResponseWindow() {
-    responseOpen = true;
-    tStimOn = performance.now();
-    return new Promise((resolve) => { resolveResponse = resolve; });
-  }
-
-  function closeResponseWindow() {
-    responseOpen = false;
-    resolveResponse = null;
-  }
-
-  function evaluate(trial, key) {
-    if (trial.task === 'parity') {
-      const isOdd = trial.value % 2 === 1;
-      return (key === 'A' && isOdd) || (key === 'L' && !isOdd);
-    }
-    const isSmall = trial.value < 5;
-    return (key === 'A' && isSmall) || (key === 'L' && !isSmall);
-  }
-
-  function handleResponse(key) {
-    if (!running || !responseOpen) return;
-    const rt = Math.round(performance.now() - tStimOn);
-    const trial = trials[currentIndex];
-    const correct = evaluate(trial, key);
-    results.push({
-      trialIndex: trial.trialIndex,
-      task: trial.task,
-      value: trial.value,
-      switch: trial.switch,
-      response: key,
-      correct,
-      rtMs: rt,
-      timestamp: new Date().toISOString(),
-    });
-    closeResponseWindow();
-    if (resolveResponse) resolveResponse('responded');
-    updateLog();
-    updateStats();
-  }
-
-  async function runTrial() {
-    const trial = trials[currentIndex];
-    trialInfo.textContent = `试次 ${trial.trialIndex}/${trials.length} | ${trial.switch ? '切换' : '重复'}`;
-    renderTrial(trial);
-    const responsePromise = openResponseWindow();
-    await sleep(Number(stimMsInput.value));
-    stim.textContent = '';
-
-    const timeoutPromise = sleep(Number(itiMsInput.value)).then(() => 'timeout');
-    const outcome = await Promise.race([responsePromise, timeoutPromise]);
-
-    if (outcome === 'timeout') {
-      results.push({
-        trialIndex: trial.trialIndex,
-        task: trial.task,
-        value: trial.value,
-        switch: trial.switch,
-        response: 'none',
-        correct: false,
-        rtMs: '',
-        timestamp: new Date().toISOString(),
-      });
-      updateLog();
-      updateStats();
-      closeResponseWindow();
-    }
-  }
-
-  async function start() {
-    if (running) return;
-    const nTrials = Number(nTrialsInput.value);
-    const switchRatio = Number(switchRatioInput.value);
-    if (!Number.isFinite(nTrials) || nTrials < 5) return;
-    if (!Number.isFinite(switchRatio) || switchRatio < 0 || switchRatio > 1) return;
-
+  // Logic
+  async function runTask() {
     running = true;
-    abort = false;
-    currentIndex = 0;
     results = [];
-    trials = buildTrials(nTrials, switchRatio);
+    abortController = new AbortController();
+    setUI('running');
+    el('msg').style.display = 'none';
+    el('exportBtn').disabled = true;
 
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    updateLog();
-    updateStats();
+    const nTrials = Number(el('nTrials').value);
+    const switchRatio = Number(el('switchRatio').value);
+    const stimMs = Number(el('stimMs').value);
+    const itiMs = Number(el('itiMs').value);
 
-    while (running && !abort && currentIndex < trials.length) {
-      await runTrial();
-      currentIndex += 1;
+    // Build Sequence
+    let curTask = Math.random() < 0.5 ? 'parity' : 'magnitude';
+    const trials = [];
+    for(let i=0; i<nTrials; i++) {
+        const isSwitch = i > 0 && Math.random() < switchRatio;
+        if(isSwitch) curTask = curTask === 'parity' ? 'magnitude' : 'parity';
+        trials.push({
+            id: i+1,
+            task: curTask,
+            num: numbers[Math.floor(Math.random() * numbers.length)],
+            isSwitch: isSwitch ? 1 : 0 // Force number for CSV
+        });
     }
 
-    finish();
+    try {
+        for (const t of trials) {
+            if(abortController.signal.aborted) break;
+
+            // 1. ITI
+            el('stimCard').style.display = 'none';
+            // Reset guides
+            el('guideLeft').className = 'task-guide guide-left';
+            el('guideRight').className = 'task-guide guide-right';
+            el('stage').className = 'stage focus'; // Remove task specific classes
+            
+            await sleep(itiMs);
+            if(abortController.signal.aborted) break;
+
+            // 2. Stimulus
+            const card = el('stimCard');
+            const numEl = el('stimNum');
+            const labelEl = el('taskLabel');
+            
+            card.className = 'stim-card'; // Reset anims
+            el('stage').className = `stage focus task-${t.task}`; // Highlight rules
+            el('guideLeft').classList.add('active'); // Activate guides
+            el('guideRight').classList.add('active');
+
+            numEl.textContent = t.num;
+            labelEl.textContent = t.task === 'parity' ? 'Odd / Even' : '< 5 / > 5';
+            
+            // Set Task Color
+            if(t.task === 'parity') {
+                labelEl.style.color = 'var(--accent-blue)';
+                card.style.borderColor = 'var(--accent-blue)';
+            } else {
+                labelEl.style.color = 'var(--accent-orange)';
+                card.style.borderColor = 'var(--accent-orange)';
+            }
+            
+            card.style.display = 'flex';
+
+            // 3. Response
+            const t0 = performance.now();
+            const resp = await waitForResponse(stimMs, abortController.signal);
+            const rt = resp ? Math.round(performance.now() - t0) : 0;
+            
+            // 4. Evaluate
+            let correct = false;
+            if(resp) {
+                if(t.task === 'parity') {
+                    const isOdd = t.num % 2 !== 0;
+                    if(isOdd && resp === 'ArrowLeft') correct = true;
+                    if(!isOdd && resp === 'ArrowRight') correct = true;
+                } else {
+                    const isSmall = t.num < 5;
+                    if(isSmall && resp === 'ArrowLeft') correct = true;
+                    if(!isSmall && resp === 'ArrowRight') correct = true;
+                }
+            }
+
+            // Feedback Visual
+            if(resp) {
+                card.classList.add(correct ? 'feedback-correct' : 'feedback-error');
+                await sleep(150); // Short freeze for feedback
+            }
+
+            results.push({ ...t, resp: resp || 'timeout', acc: correct ? 1 : 0, rt });
+            updateStats();
+        }
+    } catch(e) {
+        console.log('Aborted');
+    } finally {
+        running = false;
+        setUI('idle');
+        el('stimCard').style.display = 'none';
+        el('msg').style.display = 'block';
+        el('guideLeft').classList.remove('active');
+        el('guideRight').classList.remove('active');
+        el('stage').className = 'stage';
+        el('exportBtn').disabled = false;
+        el('msg').innerHTML = "任务完成<br>Task Complete";
+    }
   }
 
-  function finish() {
-    running = false;
-    abort = false;
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    trialInfo.textContent = '—';
-    clearTrial();
+  function waitForResponse(ms, signal) {
+    return new Promise(resolve => {
+        let timer;
+        const handler = (e) => {
+            if(e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                cleanup();
+                resolve(e.key);
+            }
+            if(e.key === 'Escape') {
+                cleanup();
+                el('stopBtn').click();
+                resolve(null);
+            }
+        };
+        const cleanup = () => {
+            clearTimeout(timer);
+            window.removeEventListener('keydown', handler);
+        };
+        window.addEventListener('keydown', handler);
+        timer = setTimeout(() => { cleanup(); resolve(null); }, ms);
+        signal.addEventListener('abort', () => { cleanup(); resolve(null); });
+    });
   }
 
-  function stop() {
-    if (!running) return;
-    abort = true;
-    running = false;
-    closeResponseWindow();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    trialInfo.textContent = '已停止';
-    clearTrial();
-  }
+  // Bindings
+  el('startBtn').onclick = runTask;
+  el('stopBtn').onclick = () => abortController && abortController.abort();
+  
+  el('exportBtn').onclick = () => {
+    const csv = "Trial,Task,Num,IsSwitch,Resp,Acc,RT\n" + results.map(r => Object.values(r).join(',')).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'task_switching_data.csv';
+    a.click();
+  };
 
-  function onKeyDown(e) {
-    if (e.key === 'Escape') { stop(); return; }
-    const k = String(e.key || '').toUpperCase();
-    if (k === 'A' || k === 'L') { e.preventDefault(); handleResponse(k); }
-  }
-
-  startBtn.onclick = start;
-  stopBtn.onclick = stop;
-  window.addEventListener('keydown', onKeyDown);
-})();
 </script>
 </body>
 </html>
