@@ -15,3 +15,4 @@
 - Stroop 测试：`https://KAL4SHNIKOV.github.io/my-html/stroop.html`
 - 任务切换：`https://KAL4SHNIKOV.github.io/my-html/task-switching.html`
 - 目标筛查（Flanker）：`https://KAL4SHNIKOV.github.io/my-html/flanker.html`
+- 泳道图设计器：`https://KAL4SHNIKOV.github.io/my-html/swimlane.html`
