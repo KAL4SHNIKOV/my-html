@@ -6,6 +6,7 @@
 - 首页：`https://KAL4SHNIKOV.github.io/my-html/index.html`
 - 招标代理服务费计算：`https://KAL4SHNIKOV.github.io/my-html/tender-fee.html`
 - 甘特图：`https://KAL4SHNIKOV.github.io/my-html/gantt.html`
+- Mermaid 编辑预览：`https://KAL4SHNIKOV.github.io/my-html/mermaid-editor.html`
 - 小费计算器：`https://KAL4SHNIKOV.github.io/my-html/tip-calculator.html`
 - 鸡尾酒选择与学习：`https://KAL4SHNIKOV.github.io/my-html/cocktails.html`
 - 舒尔特方格图：`https://KAL4SHNIKOV.github.io/my-html/schulte-grid.html`

@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mermaid 编辑与预览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", "PingFang SC", "Microsoft Yahei", sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #e0f2fe 0%, #f8fafc 55%, #f1f5f9 100%);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 2.6rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #475569;
+      max-width: 720px;
+      line-height: 1.6;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.3fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 420px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      border-radius: 14px;
+      border: 1px solid #cbd5f5;
+      padding: 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      font-family: "Fira Code", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: #f8fafc;
+      resize: vertical;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button.secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+    }
+
+    .status {
+      font-size: 0.9rem;
+      color: #475569;
+      min-height: 20px;
+    }
+
+    .preview {
+      display: grid;
+      place-items: center;
+      background: #f8fafc;
+      border-radius: 14px;
+      border: 1px dashed #cbd5f5;
+      padding: 16px;
+      min-height: 320px;
+      overflow: auto;
+    }
+
+    .error {
+      color: #dc2626;
+    }
+
+    .tips {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Mermaid 编辑与预览</h1>
+      <p class="subtitle">在左侧输入 Mermaid 语法，右侧实时生成流程图/时序图等，适合快速草拟方案并导出 SVG、PNG。</p>
+    </header>
+
+    <section class="workspace">
+      <div class="panel">
+        <h2>Mermaid 源码</h2>
+        <textarea id="editor" spellcheck="false"></textarea>
+        <div class="actions">
+          <button id="renderBtn" type="button">立即渲染</button>
+          <button class="secondary" id="sampleBtn" type="button">填入示例</button>
+          <button class="secondary" id="copyBtn" type="button">复制 SVG</button>
+          <button class="secondary" id="downloadSvgBtn" type="button">导出 SVG</button>
+          <button class="secondary" id="downloadPngBtn" type="button">导出 PNG</button>
+        </div>
+        <div class="status" id="status">输入后会自动渲染，也可点击按钮手动更新。</div>
+      </div>
+
+      <div class="panel">
+        <h2>预览</h2>
+        <div class="preview" id="preview">
+          <span class="tips">预览图会显示在这里。</span>
+        </div>
+        <p class="tips">支持 flowchart、sequence、class、state、gantt 等图表语法。</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    const editor = document.getElementById("editor");
+    const preview = document.getElementById("preview");
+    const status = document.getElementById("status");
+    const renderBtn = document.getElementById("renderBtn");
+    const sampleBtn = document.getElementById("sampleBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const downloadSvgBtn = document.getElementById("downloadSvgBtn");
+    const downloadPngBtn = document.getElementById("downloadPngBtn");
+
+    const sampleCode = `flowchart TD
+    A[需求收集] --> B{评审通过?}
+    B -- 是 --> C[进入设计]
+    B -- 否 --> D[补充说明]
+    C --> E[开发实现]
+    D --> B
+    E --> F[测试验收]
+    F --> G[上线发布]`;
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "default",
+    });
+
+    let renderTimer;
+
+    const setStatus = (message, isError = false) => {
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+    };
+
+    const renderDiagram = async () => {
+      const code = editor.value.trim();
+      if (!code) {
+        preview.innerHTML = '<span class="tips">请先输入 Mermaid 语法。</span>';
+        setStatus("等待输入 Mermaid 语法。", false);
+        return;
+      }
+
+      try {
+        const { svg } = await mermaid.render("mermaid-preview", code);
+        preview.innerHTML = svg;
+        setStatus("渲染成功。", false);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "渲染失败，请检查语法。";
+        preview.innerHTML = '<span class="tips error">渲染失败，请检查语法。</span>';
+        setStatus(message, true);
+      }
+    };
+
+    const getCurrentSvg = () => {
+      return preview.querySelector("svg");
+    };
+
+    const downloadFile = (blob, filename) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    const exportSvg = () => {
+      const svg = getCurrentSvg();
+      if (!svg) {
+        setStatus("暂无可导出的 SVG，请先渲染图表。", true);
+        return;
+      }
+      const svgText = svg.outerHTML;
+      const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      downloadFile(blob, "mermaid-diagram.svg");
+      setStatus("SVG 已导出。", false);
+    };
+
+    const exportPng = () => {
+      const svg = getCurrentSvg();
+      if (!svg) {
+        setStatus("暂无可导出的 PNG，请先渲染图表。", true);
+        return;
+      }
+      const clonedSvg = svg.cloneNode(true);
+      const svgRect = svg.getBoundingClientRect();
+      const width = Math.max(1, Math.ceil(svgRect.width));
+      const height = Math.max(1, Math.ceil(svgRect.height));
+      clonedSvg.setAttribute("width", `${width}`);
+      clonedSvg.setAttribute("height", `${height}`);
+      if (!clonedSvg.getAttribute("viewBox")) {
+        clonedSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      }
+      const svgText = new XMLSerializer().serializeToString(clonedSvg);
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setStatus("导出 PNG 失败，无法创建画布。", true);
+          URL.revokeObjectURL(url);
+          return;
+        }
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(image, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            setStatus("导出 PNG 失败，请重试。", true);
+            URL.revokeObjectURL(url);
+            return;
+          }
+          downloadFile(blob, "mermaid-diagram.png");
+          setStatus("PNG 已导出。", false);
+          URL.revokeObjectURL(url);
+        }, "image/png");
+      };
+      image.onerror = () => {
+        setStatus("导出 PNG 失败，请检查图表内容。", true);
+        URL.revokeObjectURL(url);
+      };
+      image.src = url;
+    };
+
+    const scheduleRender = () => {
+      clearTimeout(renderTimer);
+      renderTimer = window.setTimeout(renderDiagram, 300);
+    };
+
+    renderBtn.addEventListener("click", () => {
+      renderDiagram();
+    });
+
+    sampleBtn.addEventListener("click", () => {
+      editor.value = sampleCode;
+      renderDiagram();
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const svg = getCurrentSvg();
+      if (!svg) {
+        setStatus("暂无可复制的 SVG，请先渲染图表。", true);
+        return;
+      }
+      const svgText = svg.outerHTML;
+      try {
+        await navigator.clipboard.writeText(svgText);
+        setStatus("SVG 已复制到剪贴板。", false);
+      } catch (error) {
+        setStatus("复制失败，请手动选择 SVG。", true);
+      }
+    });
+
+    downloadSvgBtn.addEventListener("click", () => {
+      exportSvg();
+    });
+
+    downloadPngBtn.addEventListener("click", () => {
+      exportPng();
+    });
+
+    editor.addEventListener("input", scheduleRender);
+
+    editor.value = sampleCode;
+    renderDiagram();
+  </script>
+</body>
+</html>
