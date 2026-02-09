@@ -8,17 +8,26 @@
     :root {
       color-scheme: light;
       font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background-color: #f5f7fb;
+      background-color: #eef2ff;
       color: #0f172a;
-      --card: #ffffff;
-      --border: #e2e8f0;
-      --muted: #64748b;
-      --accent: #2563eb;
+      --card: rgba(255, 255, 255, 0.68);
+      --border: rgba(148, 163, 184, 0.45);
+      --muted: #5b6b85;
+      --accent: #4f46e5;
+      --glass-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+      --glass-highlight: rgba(255, 255, 255, 0.6);
     }
 
     * { box-sizing: border-box; }
-    body { margin: 0; }
-    .page { max-width: 1080px; margin: 0 auto; padding: 36px 20px 60px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(129, 140, 248, 0.35), transparent 55%),
+        radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.3), transparent 45%),
+        radial-gradient(circle at 80% 10%, rgba(236, 72, 153, 0.25), transparent 50%),
+        #eef2ff;
+    }
+    .page { max-width: 1080px; margin: 0 auto; padding: 44px 20px 70px; }
     header { display: grid; gap: 10px; margin-bottom: 24px; }
     h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.4rem); }
     .subtitle { margin: 0; color: var(--muted); line-height: 1.6; }
@@ -27,17 +36,32 @@
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.7), transparent 55%);
+      opacity: 0.6;
+      pointer-events: none;
     }
     label { font-size: 0.9rem; color: var(--muted); display: block; margin-bottom: 6px; }
     select, input, button {
       font: inherit;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid var(--border);
       padding: 10px 12px;
       width: 100%;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     input[type="number"] { appearance: textfield; }
     .row { display: grid; gap: 12px; }
@@ -47,13 +71,29 @@
     .rate-btn,
     .country-btn {
       border: 1px solid var(--border);
-      background: #f8fafc;
+      background: rgba(255, 255, 255, 0.6);
       color: #0f172a;
       cursor: pointer;
       font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .rate-btn:hover,
+    .country-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
     }
     .rate-btn.active,
-    .country-btn.active { border-color: var(--accent); background: #dbeafe; color: #1e3a8a; }
+    .country-btn.active {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(56, 189, 248, 0.2));
+      color: #1e1b4b;
+      box-shadow: 0 16px 30px rgba(79, 70, 229, 0.25);
+    }
     .note { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
     .summary { display: grid; gap: 10px; }
     .summary-item { display: flex; justify-content: space-between; font-size: 1rem; }
@@ -64,13 +104,18 @@
       align-items: center;
       padding: 6px 10px;
       border-radius: 999px;
-      background: #f1f5f9;
+      background: rgba(255, 255, 255, 0.65);
       border: 1px solid var(--border);
       font-size: 0.85rem;
       color: var(--muted);
     }
     .tips { display: grid; gap: 10px; }
     .culture { margin: 0; line-height: 1.6; color: var(--muted); }
+    .card > * { position: relative; z-index: 1; }
+    .flag {
+      font-size: 1.05rem;
+      filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.2));
+    }
   </style>
 </head>
 <body>
@@ -150,6 +195,7 @@
       {
         code: 'US',
         name: '美国',
+        flag: '🇺🇸',
         currency: 'USD',
         rates: [18, 20, 22],
         culture: '餐厅普遍期待 18%~22% 的小费，若服务出色可更高。外卖、酒吧通常也会给小费。',
@@ -157,6 +203,7 @@
       {
         code: 'CA',
         name: '加拿大',
+        flag: '🇨🇦',
         currency: 'CAD',
         rates: [15, 18, 20],
         culture: '小费文化接近美国，15% 起步较常见，酒吧与出租车也会给小费。',
@@ -164,6 +211,7 @@
       {
         code: 'UK',
         name: '英国',
+        flag: '🇬🇧',
         currency: 'GBP',
         rates: [10, 12.5, 15],
         culture: '不少餐厅已在账单中加入 service charge，若已包含可少给或不再额外加。',
@@ -171,6 +219,7 @@
       {
         code: 'FR',
         name: '法国',
+        flag: '🇫🇷',
         currency: 'EUR',
         rates: [0, 5, 10],
         culture: '服务费通常已含在账单中，可视服务质量留下零散找零或 5% 的心意。',
@@ -178,6 +227,7 @@
       {
         code: 'JP',
         name: '日本',
+        flag: '🇯🇵',
         currency: 'JPY',
         rates: [0],
         culture: '日本一般不收小费，刻意给小费可能让人尴尬，服务费多已包含。',
@@ -185,6 +235,7 @@
       {
         code: 'CN',
         name: '中国大陆',
+        flag: '🇨🇳',
         currency: 'CNY',
         rates: [0],
         culture: '小费文化不普遍，正规餐厅与服务行业多数不要求额外小费。',
@@ -192,6 +243,7 @@
       {
         code: 'AU',
         name: '澳大利亚',
+        flag: '🇦🇺',
         currency: 'AUD',
         rates: [0, 5, 10],
         culture: '小费不是必须，但高端餐厅或优秀服务可给 5%~10% 以示感谢。',
@@ -228,7 +280,12 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = `country-btn${idx === 0 ? ' active' : ''}`;
-        btn.textContent = c.name;
+        const flag = document.createElement('span');
+        flag.className = 'flag';
+        flag.textContent = c.flag ?? '';
+        const label = document.createElement('span');
+        label.textContent = c.name;
+        btn.append(flag, label);
         btn.addEventListener('click', () => {
           selectedCountry = c;
           document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
