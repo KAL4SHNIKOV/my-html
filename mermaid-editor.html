@@ -508,7 +508,29 @@
         editor.gotoLine(1);
     };
 
-    // 导出功能 - 优化
+    function getSvgSize(svgElement) {
+        const viewBoxAttr = svgElement.getAttribute('viewBox');
+        if (viewBoxAttr) {
+            const parts = viewBoxAttr.trim().split(/\s+/).map(Number);
+            if (parts.length === 4 && Number.isFinite(parts[2]) && Number.isFinite(parts[3]) && parts[2] > 0 && parts[3] > 0) {
+                return { width: parts[2], height: parts[3] };
+            }
+        }
+
+        const widthAttr = parseFloat(svgElement.getAttribute('width'));
+        const heightAttr = parseFloat(svgElement.getAttribute('height'));
+        if (Number.isFinite(widthAttr) && Number.isFinite(heightAttr) && widthAttr > 0 && heightAttr > 0) {
+            return { width: widthAttr, height: heightAttr };
+        }
+
+        const bbox = svgElement.getBBox();
+        return {
+            width: Math.max(1, Math.ceil(bbox.width || 1)),
+            height: Math.max(1, Math.ceil(bbox.height || 1))
+        };
+    }
+
+    // 导出功能 - 修复高清 PNG 导出
     window.exportFile = (type) => {
         const graphDiv = document.getElementById('graph-view');
         const originalSvg = graphDiv.querySelector('svg');
@@ -522,13 +544,19 @@
         clonedSvg.removeAttribute('style');
         clonedSvg.removeAttribute('class');
         clonedSvg.style.backgroundColor = '#ffffff';
+        clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
-        const viewBox = originalSvg.getAttribute('viewBox').split(' ').map(Number);
-        const width = viewBox[2];
-        const height = viewBox[3];
+        const { width, height } = getSvgSize(originalSvg);
+
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+            showToast('导出失败：图表尺寸异常', 'error');
+            return;
+        }
 
         clonedSvg.setAttribute('width', width);
         clonedSvg.setAttribute('height', height);
+        clonedSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
         const serializer = new XMLSerializer();
         const svgString = serializer.serializeToString(clonedSvg);
@@ -541,23 +569,61 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const scale = 3;
-            
-            canvas.width = width * scale;
-            canvas.height = height * scale;
-            
+
+            if (!ctx) {
+                showToast('导出失败：无法创建画布上下文', 'error');
+                return;
+            }
+
+            canvas.width = Math.max(1, Math.round(width * scale));
+            canvas.height = Math.max(1, Math.round(height * scale));
+
+            const svgWithHeader = `<?xml version="1.0" encoding="UTF-8"?>\n${svgString}`;
+            const svgBlob = new Blob([svgWithHeader], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
             const img = new Image();
+
             img.onload = () => {
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.scale(scale, scale);
-                ctx.drawImage(img, 0, 0);
-                
-                canvas.toBlob((blob) => {
-                    downloadBlob(blob, `mermaid-chart-${Date.now()}.png`);
-                    showToast('PNG 导出成功 (3x高清)', 'success');
-                });
+                try {
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            downloadBlob(blob, `mermaid-chart-${Date.now()}.png`);
+                            showToast('PNG 导出成功 (3x高清)', 'success');
+                            return;
+                        }
+
+                        // 兼容性回退：toBlob 返回 null 时改用 dataURL
+                        const dataUrl = canvas.toDataURL('image/png', 1.0);
+                        if (!dataUrl || dataUrl === 'data:,') {
+                            showToast('导出失败：浏览器不支持当前 PNG 导出路径', 'error');
+                            return;
+                        }
+                        const a = document.createElement('a');
+                        a.href = dataUrl;
+                        a.download = `mermaid-chart-${Date.now()}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        showToast('PNG 导出成功 (3x高清)', 'success');
+                    }, 'image/png', 1.0);
+                } catch (error) {
+                    showToast(`导出失败：${error.message || '未知错误'}`, 'error');
+                } finally {
+                    URL.revokeObjectURL(svgUrl);
+                }
             };
-            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+
+            img.onerror = () => {
+                URL.revokeObjectURL(svgUrl);
+                showToast('导出失败：SVG 转换为 PNG 时发生错误', 'error');
+            };
+
+            img.src = svgUrl;
         }
     };
 
