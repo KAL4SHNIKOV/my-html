@@ -574,34 +574,56 @@
                 showToast('导出失败：无法创建画布上下文', 'error');
                 return;
             }
-            
-            canvas.width = width * scale;
-            canvas.height = height * scale;
-            
+
+            canvas.width = Math.max(1, Math.round(width * scale));
+            canvas.height = Math.max(1, Math.round(height * scale));
+
+            const svgWithHeader = `<?xml version="1.0" encoding="UTF-8"?>\n${svgString}`;
+            const svgBlob = new Blob([svgWithHeader], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
             const img = new Image();
+
             img.onload = () => {
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                canvas.toBlob((blob) => {
-                    if (!blob) {
-                        showToast('导出失败：生成 PNG 为空', 'error');
-                        return;
-                    }
-                    downloadBlob(blob, `mermaid-chart-${Date.now()}.png`);
-                    showToast('PNG 导出成功 (3x高清)', 'success');
-                }, 'image/png', 1.0);
+                try {
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                URL.revokeObjectURL(img.src);
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            downloadBlob(blob, `mermaid-chart-${Date.now()}.png`);
+                            showToast('PNG 导出成功 (3x高清)', 'success');
+                            return;
+                        }
+
+                        // 兼容性回退：toBlob 返回 null 时改用 dataURL
+                        const dataUrl = canvas.toDataURL('image/png', 1.0);
+                        if (!dataUrl || dataUrl === 'data:,') {
+                            showToast('导出失败：浏览器不支持当前 PNG 导出路径', 'error');
+                            return;
+                        }
+                        const a = document.createElement('a');
+                        a.href = dataUrl;
+                        a.download = `mermaid-chart-${Date.now()}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        showToast('PNG 导出成功 (3x高清)', 'success');
+                    }, 'image/png', 1.0);
+                } catch (error) {
+                    showToast(`导出失败：${error.message || '未知错误'}`, 'error');
+                } finally {
+                    URL.revokeObjectURL(svgUrl);
+                }
             };
+
             img.onerror = () => {
+                URL.revokeObjectURL(svgUrl);
                 showToast('导出失败：SVG 转换为 PNG 时发生错误', 'error');
-                URL.revokeObjectURL(img.src);
             };
 
-            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            img.src = URL.createObjectURL(svgBlob);
+            img.src = svgUrl;
         }
     };
 
