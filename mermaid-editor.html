@@ -3,355 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mermaid 科学可视化编辑器 (优化版)</title>
+    <title>Mermaid Pro Studio | 科学可视化工作台</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- 修复：添加缺失的库引用 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
     
     <style>
         :root {
-            --bg-color: #f3f4f6;
-            --editor-bg: #1e1e1e;
-            --editor-text: #d4d4d4;
-            --panel-bg: #ffffff;
-            --accent-color: #2563eb;
-            --border-color: #e5e7eb;
-            --error-color: #ef4444;
-            --header-height: 60px;
+            --sidebar-width: 280px;
+            --header-height: 56px;
+            --bg-dark: #1e1e1e;
+            --bg-light: #ffffff;
+            --border: #e5e7eb;
+            --accent: #3b82f6;
+            --text-main: #374151;
+            --text-sub: #6b7280;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Inter', sans-serif;
             height: 100vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            background: #f9fafb;
         }
 
-        /* 顶部导航栏 */
+        /* --- Header --- */
         header {
             height: var(--header-height);
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
+            background: #fff;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            z-index: 10;
+            padding: 0 20px;
+            z-index: 20;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
 
-        h1 { font-size: 18px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 8px;}
-        h1 span { color: var(--accent-color); background: #eff6ff; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .brand { font-weight: 700; font-size: 18px; color: #111; display: flex; align-items: center; gap: 8px; }
+        .brand span { background: #eff6ff; color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .actions { display: flex; gap: 12px; }
-
-        button {
-            padding: 8px 16px;
+        .toolbar { display: flex; gap: 10px; }
+        
+        .btn {
+            padding: 8px 14px;
             border-radius: 6px;
-            border: 1px solid var(--border-color);
-            background: white;
-            color: #374151;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text-main);
             transition: all 0.2s;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-
-        button:hover { background-color: #f9fafb; border-color: #d1d5db; }
-        button.primary { background: var(--accent-color); color: white; border: none; }
-        button.primary:hover { background: #1d4ed8; }
-
-        /* 主体布局 */
-        main {
+        .btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+        .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn.primary:hover { background: #2563eb; }
+        
+        /* --- Layout --- */
+        .workspace {
             display: flex;
             flex: 1;
             height: calc(100vh - var(--header-height));
         }
 
-        /* 左侧编辑器 */
-        .editor-pane {
+        /* --- Sidebar (Settings) --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #fff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sidebar-title { font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
+
+        .control-group { margin-bottom: 16px; }
+        .control-label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--text-main); font-weight: 500;}
+        
+        select, input[type="range"] { width: 100%; }
+        select { padding: 6px; border-radius: 4px; border: 1px solid #d1d5db; font-size: 13px; cursor: pointer; }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        
+        .template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .template-btn { padding: 8px 6px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; cursor: pointer; background: #f9fafb; transition: all 0.2s; }
+        .template-btn:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+
+        /* --- Editor Area --- */
+        .editor-container {
             width: 40%;
             display: flex;
             flex-direction: column;
-            background: var(--editor-bg);
+            background: var(--bg-dark);
             border-right: 1px solid #333;
-        }
-
-        .editor-header {
-            padding: 8px 16px;
-            background: #2d2d2d;
-            color: #9ca3af;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        textarea {
-            flex: 1;
-            width: 100%;
-            background: var(--editor-bg);
-            color: var(--editor-text);
-            border: none;
-            padding: 16px;
-            font-family: 'JetBrains Mono', 'Consolas', monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            resize: none;
-            outline: none;
-            white-space: pre;
-        }
-
-        /* 滚动条样式 */
-        textarea::-webkit-scrollbar { width: 10px; }
-        textarea::-webkit-scrollbar-track { background: #1e1e1e; }
-        textarea::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
-
-        /* 右侧预览区 */
-        .preview-pane {
-            flex: 1;
             position: relative;
-            background: var(--panel-bg);
+        }
+        
+        #editor { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+        
+        /* --- Preview Area --- */
+        .preview-container {
+            flex: 1;
+            background: #f8f9fa;
+            position: relative;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        #graph-container {
+        #graph-view {
             flex: 1;
             width: 100%;
             height: 100%;
+            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden; /* 由 svg-pan-zoom 控制 */
-            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
-            background-size: 20px 20px;
         }
 
-        /* 错误提示框 */
-        #error-container {
+        /* Error Toast - 改进样式 */
+        .error-toast {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            left: 20px;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-family: 'JetBrains Mono', monospace;
-            display: none;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 20;
+            bottom: 20px; right: 20px; left: 20px;
+            background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444;
+            padding: 12px 16px; border-radius: 6px;
+            color: #991b1b; font-size: 13px; font-family: 'JetBrains Mono';
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; z-index: 50;
+            animation: slideIn 0.3s ease-out;
         }
 
-        /* Mermaid 生成的 SVG 样式调整 */
-        svg {
-            max-width: 100%;
-            height: auto;
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* SVG Styles */
+        svg { max-width: 100%; height: auto; }
+
+        /* Loading Overlay - 改进 */
+        .loading { 
+            position: absolute; top:0; left:0; width:100%; height:100%; 
+            background:rgba(255,255,255,0.9); z-index:40; 
+            display:flex; flex-direction: column; justify-content:center; align-items:center; 
+            display:none;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 成功提示 */
+        .success-toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            border-radius: 6px;
+            color: #065f46;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 100;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        /* 响应式优化 */
+        @media (max-width: 1024px) {
+            .editor-container { width: 50%; }
+            .sidebar { width: 240px; }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Mermaid Studio <span>Scientific</span></h1>
-    <div class="actions">
-        <button onclick="copyCode()">复制源码</button>
-        <button onclick="downloadSVG()">导出 SVG</button>
-        <button class="primary" onclick="downloadPNG()">导出 PNG</button>
+    <div class="brand">Mermaid Studio <span>PRO</span></div>
+    <div class="toolbar">
+        <button class="btn" onclick="copySource()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            复制代码
+        </button>
+        <button class="btn" onclick="exportFile('svg')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            SVG
+        </button>
+        <button class="btn primary" onclick="exportFile('png')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            导出 PNG (高清)
+        </button>
     </div>
 </header>
 
-<main>
-    <div class="editor-pane">
-        <div class="editor-header">Code Input (Mermaid Syntax)</div>
-        <textarea id="input" spellcheck="false" placeholder="在此粘贴 Mermaid 代码...">
-%%{
-  init: {
-    'theme': 'neutral',
-    'flowchart': { 'curve': 'monotoneX', 'padding': 15, 'nodeSpacing': 40, 'rankSpacing': 50 },
-    'themeVariables': {
-      'fontFamily': 'Inter, sans-serif',
-      'fontSize': '14px',
-      'primaryColor': '#e1f5fe',
-      'primaryBorderColor': '#01579b',
-      'secondaryColor': '#f3f4f6',
-      'tertiaryColor': '#ffffff'
-    }
-  }
-}%%
-graph TD
-    %% 定义样式类
-    classDef key fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1,font-weight:600
-    classDef fin fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
-    classDef gate fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#bf360c,stroke-dasharray: 5 5
-    classDef ctrl fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f
-    classDef done fill:#f3f4f6,stroke:#757575,stroke-width:1px,color:#616161,stroke-dasharray: 2 2
+<div class="workspace">
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-title">快速模板</div>
+            <div class="template-grid">
+                <div class="template-btn" onclick="loadTemplate('flow')">流程图</div>
+                <div class="template-btn" onclick="loadTemplate('sequence')">时序图</div>
+                <div class="template-btn" onclick="loadTemplate('gantt')">甘特图</div>
+                <div class="template-btn" onclick="loadTemplate('er')">ER 图</div>
+                <div class="template-btn" onclick="loadTemplate('git')">Git 图</div>
+                <div class="template-btn" onclick="loadTemplate('mindmap')">思维导图</div>
+                <div class="template-btn" onclick="loadTemplate('class')">类图</div>
+                <div class="template-btn" onclick="loadTemplate('state')">状态图</div>
+            </div>
+        </div>
 
-    %% 主流程
-    S0[开始] --> S1[立案阶段]:::key
-    S1 --> S2[调查取证]
-    S2 --> S3[审理决定]:::gate
-    S3 --> S4[执行阶段]
-    S4 --> S5[结案归档]:::fin
+        <div class="sidebar-section">
+            <div class="sidebar-title">外观设置</div>
+            
+            <div class="control-group">
+                <label class="control-label">配色主题 (Theme)</label>
+                <select id="cfg-theme" onchange="triggerRender()">
+                    <option value="default">默认 (Default)</option>
+                    <option value="neutral" selected>中性 (Scientific)</option>
+                    <option value="base">基础 (Base)</option>
+                    <option value="forest">森林 (Forest)</option>
+                    <option value="dark">暗黑 (Dark)</option>
+                </select>
+            </div>
 
-    %% 月度机制子图
-    subgraph M_Cycle [月度对账与差异处理机制]
-        direction TB
-        M1[系统生成对账明细]:::key --> M2[主要部门对账核对]:::fin
-        M2 --> M3{是否存在差异?}:::gate
-        M3 -- 是 --> M4[登记原因/追溯责任/修正台账]:::ctrl
-        M4 --> M1
-        M3 -- 否 --> M5[对账一致/留痕归档]:::done
-    end
+            <div class="control-group">
+                <label class="control-label">线条风格 (Curve)</label>
+                <select id="cfg-curve" onchange="triggerRender()">
+                    <option value="basis">平滑 (Basis)</option>
+                    <option value="linear" selected>直线 (Linear)</option>
+                    <option value="step">阶梯 (Step)</option>
+                    <option value="monotoneX">单调X (MonotoneX)</option>
+                </select>
+            </div>
 
-    %% 连接主流程与子图
-    S1 -.-> M_Cycle
-    S2 -.-> M_Cycle
-    S3 -.-> M_Cycle
-    S4 -.-> M_Cycle
-    S5 -.-> M_Cycle
+            <div class="control-group">
+                <label class="control-label">节点间距: <span id="val-nodesep">50</span></label>
+                <input type="range" id="cfg-nodesep" min="20" max="150" value="50" oninput="updateLabel('nodesep', this.value); triggerRender()">
+            </div>
 
-    %% 设置连接线样式
-    linkStyle 5,6,7,8,9 stroke:#90a4ae,stroke-width:1px,stroke-dasharray: 3 3
-        </textarea>
+            <div class="control-group">
+                <label class="control-label">层级间距: <span id="val-ranksep">50</span></label>
+                <input type="range" id="cfg-ranksep" min="20" max="150" value="50" oninput="updateLabel('ranksep', this.value); triggerRender()">
+            </div>
+        </div>
     </div>
 
-    <div class="preview-pane">
-        <div id="graph-container"></div>
-        <div id="error-container"></div>
+    <div class="editor-container">
+        <div id="editor"></div>
     </div>
-</main>
 
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <div class="preview-container">
+        <div id="graph-view"></div>
+        <div class="error-toast" id="error-toast"></div>
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <div style="margin-top: 12px; color: var(--text-sub);">渲染中...</div>
+        </div>
+    </div>
+</div>
 
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+<!-- 成功提示 -->
+<div class="success-toast" id="success-toast"></div>
 
-    // 初始化 Mermaid
-    mermaid.initialize({ 
-        startOnLoad: false,
-        securityLevel: 'loose',
-    });
+<script>
 
-    const input = document.getElementById('input');
-    const graphDiv = document.getElementById('graph-container');
-    const errorDiv = document.getElementById('error-container');
+    // 全局变量
     let panZoomInstance = null;
-    let cleanSvgData = null; // 用于存储未被 svg-pan-zoom 修改的原始 SVG
+    let editor = null;
+    let renderTimer = null;
+    
+    // 初始化编辑器
+    function initEditor() {
+        editor = ace.edit("editor");
+        editor.setTheme("ace/theme/twilight");
+        editor.session.setMode("ace/mode/markdown");
+        editor.setOptions({
+            fontSize: "14px",
+            showPrintMargin: false,
+            showGutter: true,
+            highlightActiveLine: true,
+            wrap: true,
+            fontFamily: "JetBrains Mono",
+            tabSize: 2
+        });
 
-    // 防抖函数
-    const debounce = (func, wait) => {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
+        // 默认载入流程图
+        loadTemplate('flow');
+        
+        // 监听变化 - 改进防抖
+        editor.session.on('change', () => {
+            clearTimeout(renderTimer);
+            renderTimer = setTimeout(renderDiagram, 500);
+        });
+
+        // 添加快捷键
+        editor.commands.addCommand({
+            name: 'renderDiagram',
+            bindKey: {win: 'Ctrl-Enter', mac: 'Cmd-Enter'},
+            exec: function() {
+                renderDiagram();
+            }
+        });
+    }
+
+    // 更新滑块标签
+    function updateLabel(type, value) {
+        document.getElementById(`val-${type}`).textContent = value;
+    }
+
+    // 构建配置 Config Object
+    function getConfig() {
+        const theme = document.getElementById('cfg-theme').value;
+        const curve = document.getElementById('cfg-curve').value;
+        const nodeSpacing = parseInt(document.getElementById('cfg-nodesep').value);
+        const rankSpacing = parseInt(document.getElementById('cfg-ranksep').value);
+
+        return {
+            theme: theme,
+            flowchart: {
+                curve: curve,
+                nodeSpacing: nodeSpacing,
+                rankSpacing: rankSpacing,
+                htmlLabels: true
+            },
+            gantt: { titleTopMargin: 25, barHeight: 20, barGap: 4 },
+            sequence: { actorMargin: 50, boxMargin: 10 }
         };
-    };
+    }
 
-    // 渲染函数
-    const renderDiagram = async () => {
-        const code = input.value;
-        errorDiv.style.display = 'none';
+    // 渲染主逻辑 - 改进错误处理
+    window.renderDiagram = async () => {
+        const rawCode = editor.getValue();
+        const errorBox = document.getElementById('error-toast');
+        const graphDiv = document.getElementById('graph-view');
+        
+        if (!rawCode.trim()) return;
+
+        // 生成配置
+        const configObj = getConfig();
+        const configString = `%%{init: ${JSON.stringify(configObj)} }%%\n`;
+        const finalCode = configString + rawCode;
 
         try {
-            if (await mermaid.parse(code)) {
-                // 生成 SVG
-                const { svg } = await mermaid.render('mermaid-svg', code);
-                cleanSvgData = svg; // 保存原始 SVG
-                graphDiv.innerHTML = svg;
-                
-                const svgElement = graphDiv.querySelector('svg');
-                svgElement.style.width = '100%';
-                svgElement.style.height = '100%';
+            // 预检查语法
+            await mermaid.parse(finalCode);
+            
+            // 隐藏错误
+            errorBox.style.display = 'none';
+            
+            // 渲染
+            const id = 'mermaid-graph-' + Date.now();
+            const { svg } = await mermaid.render(id, finalCode);
+            
+            graphDiv.innerHTML = svg;
+            
+            // SVG 后处理
+            const svgEl = graphDiv.querySelector('svg');
+            svgEl.style.height = '100%'; 
+            svgEl.style.width = '100%';
+            
+            // Pan-Zoom
+            if (panZoomInstance) panZoomInstance.destroy();
+            panZoomInstance = svgPanZoom(svgEl, {
+                zoomEnabled: true,
+                controlIconsEnabled: true,
+                fit: true,
+                center: true,
+                minZoom: 0.1,
+                maxZoom: 10,
+                panEnabled: true,
+                dblClickZoomEnabled: false
+            });
 
-                // 启用缩放和平移
-                if (panZoomInstance) { panZoomInstance.destroy(); }
-                panZoomInstance = svgPanZoom(svgElement, {
-                    zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true, minZoom: 0.1, maxZoom: 10
-                });
-            }
-        } catch (error) {
-            console.error('Render error:', error);
-            errorDiv.innerHTML = `<strong>Syntax Error:</strong><br>${error.message}`;
-            errorDiv.style.display = 'block';
+        } catch (e) {
+            console.error(e);
+            errorBox.innerHTML = `<strong>语法错误:</strong><br/>${e.message || e}`;
+            errorBox.style.display = 'block';
         }
     };
 
-    input.addEventListener('input', debounce(renderDiagram, 500));
-    renderDiagram();
-
-    // ---------------- 工具函数 ----------------
-
-    window.copyCode = () => {
-        navigator.clipboard.writeText(input.value);
-        alert('代码已复制到剪贴板');
+    // 触发渲染
+    window.triggerRender = () => {
+        renderDiagram();
     };
 
-    // 修复: 导出原始、干净的 SVG
-    window.downloadSVG = () => {
-        if (!cleanSvgData) { alert('请先生成图表'); return; }
-        const blob = new Blob([cleanSvgData], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `flowchart-${Date.now()}.svg`;
-        link.click();
-        URL.revokeObjectURL(url);
+    // 模板库 - 新增模板
+    window.loadTemplate = (type) => {
+        const templates = {
+            flow: `graph TD
+  A[立案] --> B{审核通过?}
+  B -- 是 --> C[执行]
+  B -- 否 --> D[驳回]
+  C --> E[归档]
+  D --> A
+  style A fill:#e1f5fe,stroke:#01579b
+  style E fill:#e8f5e9,stroke:#1b5e20`,
+            
+            sequence: `sequenceDiagram
+  autonumber
+  User->>+System: 提交申请
+  System->>+Database: 查询记录
+  Database-->>-System: 返回数据
+  System-->>-User: 显示结果`,
+            
+            gantt: `gantt
+  title 项目开发计划
+  dateFormat YYYY-MM-DD
+  section 设计
+  原型图 :a1, 2023-10-01, 5d
+  UI设计 :after a1, 3d
+  section 开发
+  后端API :2023-10-05, 5d
+  前端对接 : 5d`,
+            
+            er: `erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE-ITEM : contains
+  CUSTOMER }|..|{ DELIVERY-ADDRESS : uses`,
+            
+            git: `gitGraph
+  commit
+  commit
+  branch develop
+  checkout develop
+  commit
+  commit
+  checkout main
+  merge develop
+  commit`,
+            
+            mindmap: `mindmap
+  root((核心目标))
+    战略方向
+      市场扩张
+      产品创新
+    执行层
+      团队建设
+      资金管理`,
+            
+            class: `classDiagram
+  Animal <|-- Duck
+  Animal <|-- Fish
+  Animal : +int age
+  Animal : +String gender
+  Animal: +isMammal()
+  class Duck{
+    +String beakColor
+    +swim()
+    +quack()
+  }`,
+            
+            state: `stateDiagram-v2
+  [*] --> 待审批
+  待审批 --> 审批中: 提交
+  审批中 --> 已通过: 批准
+  审批中 --> 已拒绝: 拒绝
+  已通过 --> [*]
+  已拒绝 --> [*]`
+        };
+        
+        editor.setValue(templates[type] || templates.flow);
+        editor.clearSelection();
+        editor.gotoLine(1);
     };
 
-    // 修复: 使用更高质量和可靠性的方法导出 PNG
-    window.downloadPNG = () => {
-        if (!cleanSvgData) { alert('请先生成图表'); return; }
+    // 导出功能 - 优化
+    window.exportFile = (type) => {
+        const graphDiv = document.getElementById('graph-view');
+        const originalSvg = graphDiv.querySelector('svg');
+        
+        if (!originalSvg) { 
+            showToast('请先生成图表', 'error'); 
+            return; 
+        }
 
-        // 1. 创建一个临时的 Image 对象来加载 SVG
-        const img = new Image();
-        // 将 SVG 数据转换为 base64，避免某些浏览器的跨域问题
-        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(cleanSvgData)));
+        const clonedSvg = originalSvg.cloneNode(true);
+        clonedSvg.removeAttribute('style');
+        clonedSvg.removeAttribute('class');
+        clonedSvg.style.backgroundColor = '#ffffff';
 
-        img.onload = function() {
-            // 2. 创建 Canvas，设置高分辨率 (2x)
-            const scale = 2;
+        const viewBox = originalSvg.getAttribute('viewBox').split(' ').map(Number);
+        const width = viewBox[2];
+        const height = viewBox[3];
+
+        clonedSvg.setAttribute('width', width);
+        clonedSvg.setAttribute('height', height);
+
+        const serializer = new XMLSerializer();
+        const svgString = serializer.serializeToString(clonedSvg);
+
+        if (type === 'svg') {
+            const blob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+            downloadBlob(blob, `mermaid-chart-${Date.now()}.svg`);
+            showToast('SVG 导出成功', 'success');
+        } else if (type === 'png') {
             const canvas = document.createElement('canvas');
-            // 使用 getBBox 获取的精确尺寸，或者回退到默认
-            const width = img.width || 800;
-            const height = img.height || 600;
+            const ctx = canvas.getContext('2d');
+            const scale = 3;
+            
             canvas.width = width * scale;
             canvas.height = height * scale;
-
-            const ctx = canvas.getContext('2d');
-            // 3. 填充白色背景
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // 4. 绘制 SVG 图片
-            ctx.scale(scale, scale);
-            ctx.drawImage(img, 0, 0);
-
-            // 5. 导出并下载
-            const a = document.createElement('a');
-            a.download = `flowchart-${Date.now()}.png`;
-            a.href = canvas.toDataURL('image/png');
-            document.body.appendChild(a); // Firefox 需要将元素添加到 body
-            a.click();
-            document.body.removeChild(a);
-        };
-
-        img.onerror = function() {
-            alert('PNG 导出失败，请检查图表内容。');
-        };
+            
+            const img = new Image();
+            img.onload = () => {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob((blob) => {
+                    downloadBlob(blob, `mermaid-chart-${Date.now()}.png`);
+                    showToast('PNG 导出成功 (3x高清)', 'success');
+                });
+            };
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+        }
     };
-</script>
 
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // 复制源码
+    window.copySource = () => {
+        navigator.clipboard.writeText(editor.getValue()).then(() => {
+            showToast('源码已复制到剪贴板', 'success');
+        }).catch(() => {
+            showToast('复制失败', 'error');
+        });
+    };
+
+    // 提示函数
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('success-toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        
+        if (type === 'error') {
+            toast.style.background = '#fef2f2';
+            toast.style.borderColor = '#fecaca';
+            toast.style.borderLeftColor = '#ef4444';
+            toast.style.color = '#991b1b';
+        } else {
+            toast.style.background = '#ecfdf5';
+            toast.style.borderColor = '#a7f3d0';
+            toast.style.borderLeftColor = '#10b981';
+            toast.style.color = '#065f46';
+        }
+        
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    // 启动应用
+    mermaid.initialize({ 
+        startOnLoad: false, 
+        securityLevel: 'loose',
+        theme: 'neutral'
+    });
+    
+    initEditor();
+
+</script>
 </body>
 </html>
