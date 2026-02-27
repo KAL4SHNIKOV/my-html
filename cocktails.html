@@ -221,6 +221,49 @@
       font-style: italic;
       border-left: 2px solid var(--border);
       padding-left: 12px;
+      margin-bottom: 14px;
+    }
+
+    .detail-expand {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #171717;
+      overflow: hidden;
+    }
+
+    .detail-expand summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      color: var(--gold);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-expand summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .detail-expand summary::before {
+      content: '▸';
+      margin-right: 8px;
+      color: var(--gold-dim);
+    }
+
+    .detail-expand[open] summary::before {
+      content: '▾';
+    }
+
+    .detail-content {
+      border-top: 1px solid var(--border);
+      padding: 10px 12px 12px;
+      color: #d0d0d0;
+      font-size: 0.88rem;
+    }
+
+    .detail-content p {
+      margin: 8px 0;
     }
 
     /* Footer */
@@ -293,26 +336,26 @@
 
   <script>
     const cocktails = [
-      { name: 'Vodka Red Bull', baseSpirit: '伏特加', method: 'Build', style: 'Highball', taste: '甜感/刺激', strength: '高', family: 'Highball', ingredients: '伏特加, 红牛, 冰块', story: '90年代能量饮料风潮的产物，简单粗暴的夜店恩物。' },
-      { name: 'Cuba Libre', baseSpirit: '朗姆酒', method: 'Build', style: 'Highball', taste: '甜感/柑橘', strength: '中', family: 'Highball', ingredients: '白朗姆酒, 可乐, 青柠汁', story: '1900年左右，庆祝古巴独立运动中喊出的“自由古巴”口号。' },
-      { name: 'Jack and Coke', baseSpirit: '威士忌', method: 'Build', style: 'Highball', taste: '甜感/木质', strength: '中', family: 'Highball', ingredients: '杰克丹尼, 可乐, 冰块', story: '美式反叛精神的液态体现，简单却经典的组合。' },
-      { name: 'Bourbon & Cola', baseSpirit: '波旁威士忌', method: 'Build', style: 'Highball', taste: '甜感/香草', strength: '中', family: 'Highball', ingredients: '波旁威士忌, 可乐, 柠檬片', story: '波旁桶陈带来的香草味与可乐完美契合。' },
-      { name: 'Sweet Martini', baseSpirit: '金酒', method: 'Stirred', style: 'Coupe', taste: '甜感/草本', strength: '高', family: 'Martini', ingredients: '金酒, 甜味美思, 樱桃', story: '在干马提尼统治世界之前，这是绅士们的首选。' },
-      { name: 'Whisky Highball', baseSpirit: '威士忌', method: 'Build', style: 'Highball', taste: '清爽', strength: '低', family: 'Highball', ingredients: '威士忌, 苏打水, 柠檬皮', story: '日式匠心让这款简单的气泡饮品重获新生。' },
-      { name: 'Gin & Tonic', baseSpirit: '金酒', method: 'Build', style: 'Highball', taste: '苦感/柑橘', strength: '中', family: 'Highball', ingredients: '金酒, 汤力水, 青柠', story: '源于英军抗疟疾的奎宁水，最完美的开胃酒之一。' },
-      { name: 'Gin Fizz', baseSpirit: '金酒', method: 'Shaken', style: 'Collins', taste: '酸甜', strength: '中', family: 'Fizz', ingredients: '金酒, 柠檬汁, 糖浆, 苏打水', story: '新奥尔良的经典，摇荡出细腻泡沫是其灵魂。' },
-      { name: 'Negroni', baseSpirit: '金酒', method: 'Stirred', style: 'Rocks', taste: '苦感/草本', strength: '高', family: 'Negroni', ingredients: '金酒, 金巴利, 甜味美思', story: '1919年佛罗伦萨，内格罗尼伯爵要求把苏打水换成金酒。' },
-      { name: 'Mojito', baseSpirit: '朗姆酒', method: 'Build', style: 'Highball', taste: '清爽/薄荷', strength: '低', family: 'Highball', ingredients: '白朗姆, 青柠, 薄荷, 糖, 苏打', story: '海明威在哈瓦那留下的足迹，夏日的代名词。' },
-      { name: 'Tequila Shot', baseSpirit: '龙舌兰', method: 'Shot', style: 'Shot', taste: '辛辣', strength: '高', family: 'Shot', ingredients: '龙舌兰, 盐, 柠檬角', story: '舔盐、一口闷、咬柠檬，充满仪式感的墨西哥风情。' },
-      { name: 'Margarita', baseSpirit: '龙舌兰', method: 'Shaken', style: 'Coupe', taste: '酸甜', strength: '中', family: 'Sour', ingredients: '龙舌兰, 橙酒, 青柠汁, 盐边', story: '关于那个叫玛格丽特的女孩的故事有太多版本，但味道无可挑剔。' },
-      { name: 'Tequila Sunrise', baseSpirit: '龙舌兰', method: 'Build', style: 'Highball', taste: '果味', strength: '中', family: 'Highball', ingredients: '龙舌兰, 橙汁, 红石榴糖浆', story: '70年代滚石乐队巡演的最爱，杯中即是日出。' },
-      { name: 'Long Island Iced Tea', baseSpirit: '混合基酒', method: 'Build', style: 'Highball', taste: '甜感/柑橘', strength: '高', family: 'Highball', ingredients: '五大基酒, 柠檬汁, 可乐', story: '禁酒令时期的伪装？不，它诞生于70年代的长岛，以此买醉。' },
-      { name: 'B-52 / Layered Shot', baseSpirit: '利口酒', method: 'Layered', style: 'Shot', taste: '奶油/甜感', strength: '中', family: 'Shooter', ingredients: '咖啡酒, 百利甜, 橙酒', story: '利用密度分层，视觉效果满分的派对宠儿。' },
-      { name: 'Zombie', baseSpirit: '朗姆酒', method: 'Shaken', style: 'Tiki', taste: '热带/香料', strength: '高', family: 'Tiki', ingredients: '多种朗姆, 果汁, 香料, 苦艾酒', story: 'Donn Beach的杰作，这酒太强，两杯之后你就像个僵尸。' },
-      { name: 'Morning Glory Fizz', baseSpirit: '苏格兰威士忌', method: 'Shaken', style: 'Collins', taste: '酸甜/草本', strength: '中', family: 'Fizz', ingredients: '苏威, 苦艾酒, 蛋清, 柠檬, 苏打', story: '维多利亚时代的“回魂酒”，用于缓解宿醉。' },
-      { name: 'Death in the Afternoon', baseSpirit: '香槟', method: 'Build', style: 'Flute', taste: '草本/干爽', strength: '中', family: 'Champagne', ingredients: '香槟, 苦艾酒', story: '海明威建议：喝三到五杯，以此慢慢看尽午后时光。' },
-      { name: 'Old Fashioned', baseSpirit: '波旁威士忌', method: 'Stirred', style: 'Rocks', taste: '苦甜/木质', strength: '高', family: 'Old Fashioned', ingredients: '波旁, 方糖, 苦精, 橙皮', story: '鸡尾酒定义的活化石：烈酒、糖、水、苦精。' },
-      { name: 'Daiquiri', baseSpirit: '朗姆酒', method: 'Shaken', style: 'Coupe', taste: '酸甜', strength: '中', family: 'Sour', ingredients: '白朗姆, 青柠汁, 糖浆', story: '酸与甜的完美平衡测试，调酒师的基本功试金石。' },
+      { name: 'Vodka Red Bull', cnName: '伏特加红牛', baseSpirit: '伏特加', method: 'Build', style: 'Highball', taste: '甜感/刺激', strength: '高', family: 'Highball', ingredients: '伏特加, 红牛, 冰块', story: '90年代能量饮料风潮的产物，简单粗暴的夜店恩物。' },
+      { name: 'Cuba Libre', cnName: '自由古巴', baseSpirit: '朗姆酒', method: 'Build', style: 'Highball', taste: '甜感/柑橘', strength: '中', family: 'Highball', ingredients: '白朗姆酒, 可乐, 青柠汁', story: '1900年左右，庆祝古巴独立运动中喊出的“自由古巴”口号。' },
+      { name: 'Jack and Coke', cnName: '杰克可乐', baseSpirit: '威士忌', method: 'Build', style: 'Highball', taste: '甜感/木质', strength: '中', family: 'Highball', ingredients: '杰克丹尼, 可乐, 冰块', story: '美式反叛精神的液态体现，简单却经典的组合。' },
+      { name: 'Bourbon & Cola', cnName: '波本可乐', baseSpirit: '波旁威士忌', method: 'Build', style: 'Highball', taste: '甜感/香草', strength: '中', family: 'Highball', ingredients: '波旁威士忌, 可乐, 柠檬片', story: '波旁桶陈带来的香草味与可乐完美契合。' },
+      { name: 'Sweet Martini', cnName: '甜味马提尼', baseSpirit: '金酒', method: 'Stirred', style: 'Coupe', taste: '甜感/草本', strength: '高', family: 'Martini', ingredients: '金酒, 甜味美思, 樱桃', story: '在干马提尼统治世界之前，这是绅士们的首选。' },
+      { name: 'Whisky Highball', cnName: '威士忌嗨棒', baseSpirit: '威士忌', method: 'Build', style: 'Highball', taste: '清爽', strength: '低', family: 'Highball', ingredients: '威士忌, 苏打水, 柠檬皮', story: '日式匠心让这款简单的气泡饮品重获新生。' },
+      { name: 'Gin & Tonic', cnName: '金汤力', baseSpirit: '金酒', method: 'Build', style: 'Highball', taste: '苦感/柑橘', strength: '中', family: 'Highball', ingredients: '金酒, 汤力水, 青柠', story: '源于英军抗疟疾的奎宁水，最完美的开胃酒之一。' },
+      { name: 'Gin Fizz', cnName: '琴费士', baseSpirit: '金酒', method: 'Shaken', style: 'Collins', taste: '酸甜', strength: '中', family: 'Fizz', ingredients: '金酒, 柠檬汁, 糖浆, 苏打水', story: '新奥尔良的经典，摇荡出细腻泡沫是其灵魂。' },
+      { name: 'Negroni', cnName: '内格罗尼', baseSpirit: '金酒', method: 'Stirred', style: 'Rocks', taste: '苦感/草本', strength: '高', family: 'Negroni', ingredients: '金酒, 金巴利, 甜味美思', story: '1919年佛罗伦萨，内格罗尼伯爵要求把苏打水换成金酒。' },
+      { name: 'Mojito', cnName: '莫吉托', baseSpirit: '朗姆酒', method: 'Build', style: 'Highball', taste: '清爽/薄荷', strength: '低', family: 'Highball', ingredients: '白朗姆, 青柠, 薄荷, 糖, 苏打', story: '海明威在哈瓦那留下的足迹，夏日的代名词。' },
+      { name: 'Tequila Shot', cnName: '龙舌兰一口闷', baseSpirit: '龙舌兰', method: 'Shot', style: 'Shot', taste: '辛辣', strength: '高', family: 'Shot', ingredients: '龙舌兰, 盐, 柠檬角', story: '舔盐、一口闷、咬柠檬，充满仪式感的墨西哥风情。' },
+      { name: 'Margarita', cnName: '玛格丽特', baseSpirit: '龙舌兰', method: 'Shaken', style: 'Coupe', taste: '酸甜', strength: '中', family: 'Sour', ingredients: '龙舌兰, 橙酒, 青柠汁, 盐边', story: '关于那个叫玛格丽特的女孩的故事有太多版本，但味道无可挑剔。' },
+      { name: 'Tequila Sunrise', cnName: '龙舌兰日出', baseSpirit: '龙舌兰', method: 'Build', style: 'Highball', taste: '果味', strength: '中', family: 'Highball', ingredients: '龙舌兰, 橙汁, 红石榴糖浆', story: '70年代滚石乐队巡演的最爱，杯中即是日出。' },
+      { name: 'Long Island Iced Tea', cnName: '长岛冰茶', baseSpirit: '混合基酒', method: 'Build', style: 'Highball', taste: '甜感/柑橘', strength: '高', family: 'Highball', ingredients: '五大基酒, 柠檬汁, 可乐', story: '禁酒令时期的伪装？不，它诞生于70年代的长岛，以此买醉。' },
+      { name: 'B-52 / Layered Shot', cnName: 'B-52 轰炸机', baseSpirit: '利口酒', method: 'Layered', style: 'Shot', taste: '奶油/甜感', strength: '中', family: 'Shooter', ingredients: '咖啡酒, 百利甜, 橙酒', story: '利用密度分层，视觉效果满分的派对宠儿。' },
+      { name: 'Zombie', cnName: '僵尸', baseSpirit: '朗姆酒', method: 'Shaken', style: 'Tiki', taste: '热带/香料', strength: '高', family: 'Tiki', ingredients: '多种朗姆, 果汁, 香料, 苦艾酒', story: 'Donn Beach的杰作，这酒太强，两杯之后你就像个僵尸。' },
+      { name: 'Morning Glory Fizz', cnName: '晨光费士', baseSpirit: '苏格兰威士忌', method: 'Shaken', style: 'Collins', taste: '酸甜/草本', strength: '中', family: 'Fizz', ingredients: '苏威, 苦艾酒, 蛋清, 柠檬, 苏打', story: '维多利亚时代的“回魂酒”，用于缓解宿醉。' },
+      { name: 'Death in the Afternoon', cnName: '午后之死', baseSpirit: '香槟', method: 'Build', style: 'Flute', taste: '草本/干爽', strength: '中', family: 'Champagne', ingredients: '香槟, 苦艾酒', story: '海明威建议：喝三到五杯，以此慢慢看尽午后时光。' },
+      { name: 'Old Fashioned', cnName: '古典鸡尾酒', baseSpirit: '波旁威士忌', method: 'Stirred', style: 'Rocks', taste: '苦甜/木质', strength: '高', family: 'Old Fashioned', ingredients: '波旁, 方糖, 苦精, 橙皮', story: '鸡尾酒定义的活化石：烈酒、糖、水、苦精。' },
+      { name: 'Daiquiri', cnName: '代基里', baseSpirit: '朗姆酒', method: 'Shaken', style: 'Coupe', taste: '酸甜', strength: '中', family: 'Sour', ingredients: '白朗姆, 青柠汁, 糖浆', story: '酸与甜的完美平衡测试，调酒师的基本功试金石。' },
     ];
 
     // DOM Elements
@@ -347,12 +390,21 @@
       return textMatch && filterMatch;
     }
 
+    function detailsFor(c) {
+      return {
+        process: `采用 ${c.method} 工艺制作，建议先将杯具预冷，再按“基酒 → 调味材料 → 冰块/气泡”顺序完成，最后以对应杯型 ${c.style} 呈现。`,
+        tasting: `先闻香（识别 ${c.baseSpirit} 与辅料气息），再小口入口感受 ${c.taste} 结构，最后关注余韵与酒体强度（${c.strength}）。`,
+        extra: `侍饮建议：适合 ${c.family} 风格爱好者；可搭配轻盐零食或烤物，能更好衬托 ${c.baseSpirit} 的风味层次。`
+      };
+    }
+
     function render() {
       const filtered = cocktails.filter(matches);
       grid.innerHTML = filtered.map(c => `
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">${c.name}</h3>
+            <div style="color: var(--gold); font-size: 0.92rem;">${c.cnName}</div>
             <div class="card-tags">
               <span class="tag" style="border-color: var(--gold-dim); color: var(--gold);">${c.baseSpirit}</span>
               <span class="tag">${c.taste}</span>
@@ -364,6 +416,14 @@
             <div class="ingredients">${c.ingredients}</div>
             <div class="section-title">The Story</div>
             <div class="story">"${c.story}"</div>
+            <details class="detail-expand">
+              <summary>点击展开 | 制作与品鉴细节</summary>
+              <div class="detail-content">
+                <p><strong>制作工艺介绍：</strong>${detailsFor(c).process}</p>
+                <p><strong>品鉴流程：</strong>${detailsFor(c).tasting}</p>
+                <p><strong>侍饮建议：</strong>${detailsFor(c).extra}</p>
+              </div>
+            </details>
           </div>
         </div>
       `).join('');
