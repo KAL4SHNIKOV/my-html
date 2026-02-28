@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>天干地支五行八卦推演</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --bg: #f5f7ff;
+      --card: #ffffff;
+      --line: #d6def6;
+      --text: #1f2a44;
+      --muted: #60708f;
+      --primary: #4f46e5;
+      --accent: #14b8a6;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #eef2ff 0%, #f8fafc 46%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px 56px;
+      display: grid;
+      gap: 20px;
+    }
+
+    h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.5rem); }
+    p { margin: 0; }
+
+    .intro {
+      display: grid;
+      gap: 10px;
+      background: linear-gradient(140deg, rgba(79,70,229,0.12), rgba(20,184,166,0.1));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px;
+    }
+
+    .muted { color: var(--muted); line-height: 1.6; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 16px 30px rgba(31, 42, 68, 0.08);
+      display: grid;
+      gap: 14px;
+    }
+
+    .card h2 { margin: 0; font-size: 1.2rem; }
+
+    .row {
+      display: grid;
+      gap: 8px;
+    }
+
+    label { font-weight: 600; }
+
+    input, button {
+      border-radius: 10px;
+      border: 1px solid #c8d3f5;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--text);
+      border-color: #c8d3f5;
+    }
+
+    .result {
+      background: #f8faff;
+      border: 1px dashed #c0ccf4;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .pill-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #bfd4ff;
+      background: #eaf1ff;
+      font-size: 0.85rem;
+    }
+
+    .line-stack {
+      display: grid;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .yao { display: flex; align-items: center; gap: 8px; }
+
+    .symbol {
+      width: 108px;
+      height: 14px;
+      position: relative;
+    }
+
+    .yang::before,
+    .yin::before,
+    .yin::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      height: 14px;
+      background: #1f2a44;
+      border-radius: 4px;
+    }
+
+    .yang::before { left: 0; width: 108px; }
+    .yin::before { left: 0; width: 46px; }
+    .yin::after { right: 0; width: 46px; }
+
+    .change {
+      color: #b91c1c;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="intro">
+      <h1>天干地支五行八卦推演</h1>
+      <p class="muted">输入时间可推算四柱（年/月/日/时）的天干地支，并统计五行偏重；支持三枚铜钱六爻随机起卦，展示本卦与变卦。适合做传统文化学习与思路启发。</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>四柱与五行</h2>
+        <div class="row">
+          <label for="dateTime">选择公历时间</label>
+          <input id="dateTime" type="datetime-local" />
+        </div>
+        <button id="calcBtn">开始推演</button>
+        <div class="result" id="pillarResult">请选择时间后点击“开始推演”。</div>
+        <p class="muted">说明：月柱按节令近似规则推算，适用于日常学习场景。</p>
+      </article>
+
+      <article class="card">
+        <h2>六爻起卦（铜钱法）</h2>
+        <div class="pill-wrap">
+          <span class="pill">6 = 老阴（变）</span>
+          <span class="pill">7 = 少阳</span>
+          <span class="pill">8 = 少阴</span>
+          <span class="pill">9 = 老阳（变）</span>
+        </div>
+        <button id="divineBtn">随机起卦</button>
+        <button id="againBtn" class="secondary">再起一卦</button>
+        <div class="result" id="guaResult">点击“随机起卦”进行推演。</div>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    const stems = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+    const branches = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+    const stemElement = ["木","木","火","火","土","土","金","金","水","水"];
+    const branchElement = ["水","土","木","木","土","火","火","土","金","金","土","水"];
+    const trigramMap = {
+      "111": "乾", "110": "兑", "101": "离", "100": "震",
+      "011": "巽", "010": "坎", "001": "艮", "000": "坤"
+    };
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function defaultNow() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function getYearPillar(y) {
+      const offset = y - 1984;
+      const stem = stems[((offset % 10) + 10) % 10];
+      const branch = branches[((offset % 12) + 12) % 12];
+      return { stem, branch, stemIndex: ((offset % 10) + 10) % 10, branchIndex: ((offset % 12) + 12) % 12 };
+    }
+
+    function getMonthPillar(yStemIndex, month, day) {
+      const adjustedMonth = (month === 1 || (month === 2 && day < 4)) ? 12 : ((month + 10) % 12);
+      const monthBranchIndex = (adjustedMonth + 1) % 12;
+      const firstStem = (yStemIndex % 5) * 2 + 2;
+      const monthStemIndex = (firstStem + adjustedMonth - 1) % 10;
+      return {
+        stem: stems[monthStemIndex],
+        branch: branches[monthBranchIndex],
+        stemIndex: monthStemIndex,
+        branchIndex: monthBranchIndex
+      };
+    }
+
+    function julianDay(date) {
+      const y = date.getFullYear();
+      const m = date.getMonth() + 1;
+      const d = date.getDate();
+      const a = Math.floor((14 - m) / 12);
+      const yy = y + 4800 - a;
+      const mm = m + 12 * a - 3;
+      return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+    }
+
+    function getDayPillar(date) {
+      const ref = new Date(1984, 1, 2);
+      const offset = julianDay(date) - julianDay(ref);
+      const stemIndex = ((offset % 10) + 10) % 10;
+      const branchIndex = ((offset % 12) + 12) % 12;
+      return { stem: stems[stemIndex], branch: branches[branchIndex], stemIndex, branchIndex };
+    }
+
+    function getHourPillar(dayStemIndex, hour) {
+      const branchIndex = Math.floor((hour + 1) / 2) % 12;
+      const stemIndex = (dayStemIndex * 2 + branchIndex) % 10;
+      return { stem: stems[stemIndex], branch: branches[branchIndex], stemIndex, branchIndex };
+    }
+
+    function countFiveElements(pillars) {
+      const count = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
+      pillars.forEach((p) => {
+        count[stemElement[p.stemIndex]] += 1;
+        count[branchElement[p.branchIndex]] += 1;
+      });
+      return count;
+    }
+
+    function renderPillars() {
+      const value = document.getElementById("dateTime").value;
+      const result = document.getElementById("pillarResult");
+      if (!value) {
+        result.textContent = "请先选择时间。";
+        return;
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        result.textContent = "时间格式无效，请重新选择。";
+        return;
+      }
+
+      const year = getYearPillar(date.getFullYear());
+      const month = getMonthPillar(year.stemIndex, date.getMonth() + 1, date.getDate());
+      const day = getDayPillar(date);
+      const hour = getHourPillar(day.stemIndex, date.getHours());
+      const pillars = [year, month, day, hour];
+      const five = countFiveElements(pillars);
+      const dominant = Object.entries(five).sort((a, b) => b[1] - a[1])[0];
+
+      result.innerHTML = `
+        <div><strong>四柱：</strong>${year.stem}${year.branch}年 · ${month.stem}${month.branch}月 · ${day.stem}${day.branch}日 · ${hour.stem}${hour.branch}时</div>
+        <div><strong>五行统计：</strong>木 ${five.木} / 火 ${five.火} / 土 ${five.土} / 金 ${five.金} / 水 ${five.水}</div>
+        <div><strong>当前偏重：</strong>${dominant[0]}（${dominant[1]}）</div>
+      `;
+    }
+
+    function lineValueToYinYang(v) { return (v === 7 || v === 9) ? 1 : 0; }
+
+    function getTrigramName(lines3) {
+      const code = lines3.join("");
+      return trigramMap[code] || "未知卦";
+    }
+
+    function drawLines(lines) {
+      const items = lines.slice().reverse().map((line, idx) => {
+        const isYang = lineValueToYinYang(line) === 1;
+        const changing = line === 6 || line === 9;
+        const name = isYang ? "阳" : "阴";
+        return `
+          <div class="yao">
+            <span class="symbol ${isYang ? "yang" : "yin"}"></span>
+            <span>第${6 - idx}爻：${line}（${name}${changing ? "，动爻" : ""}）</span>
+            ${changing ? '<span class="change">变</span>' : ""}
+          </div>
+        `;
+      });
+      return `<div class="line-stack">${items.join("")}</div>`;
+    }
+
+    function divine() {
+      const lines = Array.from({ length: 6 }, () => {
+        const toss = [0, 0, 0].map(() => (Math.random() > 0.5 ? 3 : 2));
+        return toss[0] + toss[1] + toss[2];
+      });
+
+      const primaryBits = lines.map(lineValueToYinYang);
+      const changedBits = lines.map((v) => (v === 6 ? 1 : v === 9 ? 0 : lineValueToYinYang(v)));
+
+      const lower = getTrigramName(primaryBits.slice(0, 3));
+      const upper = getTrigramName(primaryBits.slice(3, 6));
+      const lowerChanged = getTrigramName(changedBits.slice(0, 3));
+      const upperChanged = getTrigramName(changedBits.slice(3, 6));
+
+      const moving = lines.filter((v) => v === 6 || v === 9).length;
+      const hint = moving === 0
+        ? "静卦，重在本卦整体意象。"
+        : moving <= 2
+          ? "动爻较少，可重点参考动爻位置。"
+          : "动爻较多，建议结合变卦综合判断。";
+
+      document.getElementById("guaResult").innerHTML = `
+        <div><strong>本卦：</strong>上${upper}下${lower}</div>
+        <div><strong>变卦：</strong>上${upperChanged}下${lowerChanged}</div>
+        <div><strong>动爻数量：</strong>${moving}，${hint}</div>
+        ${drawLines(lines)}
+      `;
+    }
+
+    document.getElementById("dateTime").value = defaultNow();
+    document.getElementById("calcBtn").addEventListener("click", renderPillars);
+    document.getElementById("divineBtn").addEventListener("click", divine);
+    document.getElementById("againBtn").addEventListener("click", divine);
+  </script>
+</body>
+</html>
